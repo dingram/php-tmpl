@@ -44,6 +44,14 @@ extern zend_module_entry tmpl_module_entry;
 #include "TSRM.h"
 #endif
 
+#ifdef ZEND_ENGINE_2_4
+# define TMPL_READ_PROPERTY(_obj, _mem, _type) zend_get_std_object_handlers()->read_property(_obj, _mem, _type, key TSRMLS_CC)
+# define TMPL_WRITE_PROPERTY(_obj, _mem, _val) zend_get_std_object_handlers()->write_property(_obj, _mem, _val, key TSRMLS_CC)
+#else
+# define TMPL_READ_PROPERTY(_obj, _mem, _type) zend_get_std_object_handlers()->read_property(_obj, _mem, _type TSRMLS_CC)
+# define TMPL_WRITE_PROPERTY(_obj, _mem, _val) zend_get_std_object_handlers()->write_property(_obj, _mem, _val TSRMLS_CC)
+#endif
+
 #define TMPL_T_PRE      "<!--{"  // open delimiter
 #define TMPL_T_POST     "}-->"   // close delimiter
 #define TMPL_T_DEFAULT  "|"      // default value start indicator
@@ -58,6 +66,23 @@ PHP_MSHUTDOWN_FUNCTION(tmpl);
 PHP_RINIT_FUNCTION(tmpl);
 PHP_RSHUTDOWN_FUNCTION(tmpl);
 PHP_MINFO_FUNCTION(tmpl);
+
+
+typedef struct {
+	zend_object zo;
+	HashTable *properties;
+	//smart_str lastresponse;
+	//smart_str headers_in;
+	void ***thread_ctx;
+	zval *this_ptr;
+	//zval *debugArr;
+} php_tt_object;
+
+#define FREE_ARGS_HASH(a)	\
+	if (a) { \
+		zend_hash_destroy(a);	\
+		FREE_HASHTABLE(a); \
+	}
 
 PHP_FUNCTION(confirm_tmpl_compiled);	/* For testing, remove later. */
 
