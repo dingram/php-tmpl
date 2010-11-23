@@ -1,0 +1,6 @@
+.*.sw?
+.deps
+.libs
+*.la
+*.lo
+*.o
