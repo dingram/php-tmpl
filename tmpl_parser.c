@@ -21,35 +21,12 @@
 #include "php_tmpl.h"
 #include "tmpl_parser.h"
 
-static char *tmpl_parse_find_tag_open(const char *tmpl) {
-	char *tmp = tmpl;
-	if (!tmp) return NULL;
-search:
-	while (*tmp && *tmp != 0[TMPL_T_PRE]) {
-		++tmp;
-	}
-	// if we don't find the entire string, search again
-	if (*tmp && strncmp(tmp, TMPL_T_PRE, sizeof(TMPL_T_PRE)-1)) {
-		++tmp;
-		goto search;
-	}
-	return tmp;
+static inline char *tmpl_parse_find_tag_open(const char *tmpl) {
+	return strstr(tmpl, TMPL_T_PRE);
 }
 
-static char *tmpl_parse_find_tag_close(const char *tmpl) {
-	char *tmp = tmpl;
-	if (!tmp) return NULL;
-search:
-	while (*tmp && *tmp != 0[TMPL_T_POST]) {
-		++tmp;
-	}
-	// if we don't find the entire string, search again
-	if (*tmp && strncmp(tmp, TMPL_T_POST, sizeof(TMPL_T_POST)-1)) {
-		++tmp;
-		goto search;
-	}
-	if (!*tmp) return NULL;
-	return tmp;
+static inline char *tmpl_parse_find_tag_close(const char *tmpl) {
+	return strstr(tmpl, TMPL_T_POST);
 }
 
 /**
