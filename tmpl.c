@@ -167,14 +167,46 @@ PHP_METHOD(tt, __destruct)
 }
 /* }}} */
 
+/* {{{ proto string TextTemplate::tokenize(string token[, string default])
+   Create a template tag with the given content */
+PHP_METHOD(tt, tokenize)
+{
+	char *token, *default_val, *ret;
+	int token_len, default_val_len=0, ret_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|s", &token, &token_len, &default_val, &default_val_len) == FAILURE) {
+		return;
+	}
+
+	if (token_len < 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid token length (0)");
+		RETURN_FALSE;
+	}
+
+	if (default_val && default_val_len) {
+		ret_len = spprintf(&ret, 0, "%s%s%s%s%s", TMPL_T_PRE, token, TMPL_T_DEFAULT, default_val, TMPL_T_POST);
+	} else {
+		TMPL_TOKENIZE(ret, ret_len, token);
+	}
+
+	RETURN_STRINGL(ret, ret_len, 0);
+}
+/* }}} */
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_noparams, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_tokenize, 0, 0, 1)
+	ZEND_ARG_INFO(0, token)
+	ZEND_ARG_INFO(0, default)
+ZEND_END_ARG_INFO()
+
+
 static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
-	/*
 	PHP_ME(tt, tokenize,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	/*
 	PHP_ME(tt, tokenizeConditional,		arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeElseIf,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeElse,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)

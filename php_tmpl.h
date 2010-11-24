@@ -52,6 +52,8 @@ extern zend_module_entry tmpl_module_entry;
 # define TMPL_WRITE_PROPERTY(_obj, _mem, _val) zend_get_std_object_handlers()->write_property(_obj, _mem, _val TSRMLS_CC)
 #endif
 
+#define TMPL_TOKENIZE(r,l,t) do { (l) = spprintf(&(r), 0, "%s%s%s", TMPL_T_PRE, (t), TMPL_T_POST); } while (0)
+
 #define TMPL_T_PRE      "<!--{"  // open delimiter
 #define TMPL_T_POST     "}-->"   // close delimiter
 #define TMPL_T_DEFAULT  "|"      // default value start indicator
