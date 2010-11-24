@@ -1,28 +1,22 @@
 <?php
-$br = (php_sapi_name() == "cli")? "":"<br>";
 
-if(!extension_loaded('tmpl')) {
-	dl('tmpl.' . PHP_SHLIB_SUFFIX);
-}
-$module = 'tmpl';
-$consts = get_defined_constants();
-echo "Constants available in the test extension:$br\n";
-foreach($consts as $const => $val) {
-	if (substr($const, 0, 5) !=='TMPL_') continue;
-    echo $const.': '.$val."$br\n";
-}
-echo "$br\n";
-$functions = get_extension_funcs($module);
-echo "Functions available in the test extension:$br\n";
-foreach($functions as $func) {
-    echo $func."$br\n";
-}
-echo "$br\n";
-$function = 'confirm_' . $module . '_compiled';
-if (extension_loaded($module)) {
-	$str = $function($module);
-} else {
-	$str = "Module $module is not compiled into PHP";
-}
-echo "$str\n";
-
+$t = new TextTemplate();
+var_dump($t);
+$t->foo='bar';
+var_dump($t);
+var_dump(get_class_methods($t));
+var_dump(TextTemplate::tokenize('A'));
+var_dump(TextTemplate::tokenize('A', 'bb'));
+var_dump(TextTemplate::tokenizeConditional('A'));
+var_dump(TextTemplate::tokenizeConditional('A', true));
+var_dump(TextTemplate::tokenizeConditional('A', false));
+var_dump(TextTemplate::tokenizeElseIf('B'));
+var_dump(TextTemplate::tokenizeElseIf('B', true));
+var_dump(TextTemplate::tokenizeElseIf('B', false));
+var_dump(TextTemplate::tokenizeElse());
+var_dump(TextTemplate::tokenizeConditionalEnd());
+var_dump(TextTemplate::tokenizeLoop('FOO'));
+var_dump(TextTemplate::tokenizeLoopRange(1, 9));
+var_dump(TextTemplate::tokenizeLoopRange(1, 9, 2));
+var_dump(TextTemplate::tokenizeLoopElse());
+var_dump(TextTemplate::tokenizeLoopEnd());
