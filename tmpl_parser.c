@@ -22,11 +22,11 @@
 #include "tmpl_parser.h"
 
 static inline char *tmpl_parse_find_tag_open(const char *tmpl) {
-	return strstr(tmpl, TMPL_T_PRE);
+	return tmpl ? strstr(tmpl, TMPL_T_PRE) : NULL;
 }
 
 static inline char *tmpl_parse_find_tag_close(const char *tmpl) {
-	return strstr(tmpl, TMPL_T_POST);
+	return tmpl ? strstr(tmpl, TMPL_T_POST) : NULL;
 }
 
 /**
