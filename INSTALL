@@ -1,0 +1,14 @@
+For most Linux systems:
+
+  phpize && ./configure && make && sudo make install
+
+For Gentoo:
+
+  phpize && aclocal && libtoolize --force && autoheader && autoconf && \
+    ./configure && make && sudo make install
+
+After installation, add:
+
+  extension=tmpl.so
+
+to your php.ini
