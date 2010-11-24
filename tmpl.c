@@ -19,6 +19,7 @@
 /* $Id$ */
 
 #include "php_tmpl.h"
+#include "tmpl_parser.h"
 
 static zend_class_entry *tto_class_entry;
 static zend_object_handlers tt_object_handlers;
@@ -172,7 +173,7 @@ PHP_METHOD(tt, __destruct)
    Create a template tag with the given content */
 PHP_METHOD(tt, tokenize)
 {
-	char *token, *default_val, *ret;
+	char *token, *default_val=NULL, *ret;
 	int token_len, default_val_len=0, ret_len;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|s", &token, &token_len, &default_val, &default_val_len) == FAILURE) {
@@ -304,7 +305,7 @@ PHP_METHOD(tt, tokenizeLoopRange)
 {
 	char *ret;
 	int ret_len;
-	long r_start, r_end, r_step;
+	signed long r_start, r_end, r_step=0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll|l", &r_start, &r_end, &r_step) == FAILURE) {
 		return;
