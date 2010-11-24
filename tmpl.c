@@ -167,6 +167,7 @@ PHP_METHOD(tt, __destruct)
 }
 /* }}} */
 
+
 /* {{{ proto string TextTemplate::tokenize(string token[, string default])
    Create a template tag with the given content */
 PHP_METHOD(tt, tokenize)
@@ -187,6 +188,60 @@ PHP_METHOD(tt, tokenize)
 		ret_len = spprintf(&ret, 0, "%s%s%s%s%s", TMPL_T_PRE, token, TMPL_T_DEFAULT, default_val, TMPL_T_POST);
 	} else {
 		TMPL_TOKENIZE(ret, ret_len, token);
+	}
+
+	RETURN_STRINGL(ret, ret_len, 0);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenizeConditional(string condition[, bool invert])
+   Create a conditional template tag with the given condition */
+PHP_METHOD(tt, tokenizeConditional)
+{
+	char *cond, *ret;
+	int cond_len, invert=0, ret_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b", &cond, &cond_len, &invert) == FAILURE) {
+		return;
+	}
+
+	if (cond_len < 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid condition length (0)");
+		RETURN_FALSE;
+	}
+
+	if (invert) {
+		ret_len = spprintf(&ret, 0, "%s!%s%s", TMPL_T_PRE TMPL_T_COND, cond, TMPL_T_POST);
+	} else {
+		ret_len = spprintf(&ret, 0, "%s%s%s", TMPL_T_PRE TMPL_T_COND, cond, TMPL_T_POST);
+	}
+
+	RETURN_STRINGL(ret, ret_len, 0);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenizeElseIf(string condition[, bool invert])
+   Create a conditional "else if" template tag with the given condition */
+PHP_METHOD(tt, tokenizeElseIf)
+{
+	char *cond, *ret;
+	int cond_len, invert=0, ret_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b", &cond, &cond_len, &invert) == FAILURE) {
+		return;
+	}
+
+	if (cond_len < 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid condition length (0)");
+		RETURN_FALSE;
+	}
+
+	if (invert) {
+		ret_len = spprintf(&ret, 0, "%s!%s%s", TMPL_T_PRE TMPL_T_ELSE TMPL_T_COND, cond, TMPL_T_POST);
+	} else {
+		ret_len = spprintf(&ret, 0, "%s%s%s", TMPL_T_PRE TMPL_T_ELSE TMPL_T_COND, cond, TMPL_T_POST);
 	}
 
 	RETURN_STRINGL(ret, ret_len, 0);
@@ -220,7 +275,62 @@ PHP_METHOD(tt, tokenizeConditionalEnd)
 /* }}} */
 
 
-/* {{{ proto string TextTemplate::tokenize(void)
+/* {{{ proto string TextTemplate::tokenizeLoop(string variable)
+   Create a foreach template tag over the given variable */
+PHP_METHOD(tt, tokenizeLoop)
+{
+	char *var, *ret;
+	int var_len, ret_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &var, &var_len) == FAILURE) {
+		return;
+	}
+
+	if (var_len < 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid variable length (0)");
+		RETURN_FALSE;
+	}
+
+	ret_len = spprintf(&ret, 0, "%s%s%s", TMPL_T_PRE TMPL_T_LOOP, var, TMPL_T_POST);
+
+	RETURN_STRINGL(ret, ret_len, 0);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenizeLoopRange(long start, long end[, long step])
+   Create a for loop template tag over the given range and step */
+PHP_METHOD(tt, tokenizeLoopRange)
+{
+	char *ret;
+	int ret_len;
+	long r_start, r_end, r_step;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll|l", &r_start, &r_end, &r_step) == FAILURE) {
+		return;
+	}
+
+	if (!r_step) {
+		r_step = (r_end>=r_start) ? 1 : -1;
+	}
+
+	if ((r_step>0 && r_end<r_start) || (r_step<0 && r_end>r_start)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Step sign does not make sense with range");
+		RETURN_FALSE;
+	}
+
+	if (r_step == 1 || r_step == -1) {
+		ret_len = spprintf(&ret, 0, "%s(%ld..%ld)%s", TMPL_T_PRE TMPL_T_LOOP, r_start, r_end, TMPL_T_POST);
+	} else {
+		ret_len = spprintf(&ret, 0, "%s(%ld,%ld..%ld)%s", TMPL_T_PRE TMPL_T_LOOP, r_start, r_start+r_step, r_end, TMPL_T_POST);
+	}
+
+	RETURN_STRINGL(ret, ret_len, 0);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenizeLoopElse(void)
    Create a loop "else" template tag */
 PHP_METHOD(tt, tokenizeLoopElse)
 {
@@ -255,22 +365,47 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_tokenize, 0, 0, 1)
 	ZEND_ARG_INFO(0, default)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_tokenize_cond, 0, 0, 1)
+	ZEND_ARG_INFO(0, token)
+	ZEND_ARG_INFO(0, invert)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_tokenize_loop, 0, 0, 1)
+	ZEND_ARG_INFO(0, token)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_tokenize_loop_range, 0, 0, 2)
+	ZEND_ARG_INFO(0, start)
+	ZEND_ARG_INFO(0, end)
+	ZEND_ARG_INFO(0, step)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_get, 0, 0, 1)
+	ZEND_ARG_INFO(0, token)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_set, 0, 0, 1)
+	ZEND_ARG_INFO(0, token)
+	ZEND_ARG_INFO(0, replacement)
+ZEND_END_ARG_INFO()
+
 
 static zend_function_entry tt_functions[] = { /* {{{ */
-	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
-	PHP_ME(tt, tokenize,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	//PHP_ME(tt, tokenizeConditional,		arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	//PHP_ME(tt, tokenizeElseIf,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeElse,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeConditionalEnd,	arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	//PHP_ME(tt, tokenizeLoop,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams, 			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	//PHP_ME(tt, get,						arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	//PHP_ME(tt, set,						arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	//PHP_ME(tt, compile,					arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	//PHP_ME(tt, process,					arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
+	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
+	PHP_ME(tt, tokenize,				arginfo_tmpl_tokenize,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeConditional,		arginfo_tmpl_tokenize_cond,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeElseIf,			arginfo_tmpl_tokenize_cond,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeElse,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeConditionalEnd,	arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeLoop,			arginfo_tmpl_tokenize_loop,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeLoopRange,		arginfo_tmpl_tokenize_loop_range,	ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams, 				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	//PHP_ME(tt, get,						arginfo_tmpl_get,					ZEND_ACC_PUBLIC)
+	//PHP_ME(tt, set,						arginfo_tmpl_set,					ZEND_ACC_PUBLIC)
+	//PHP_ME(tt, compile,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
+	//PHP_ME(tt, process,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
+	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 /* }}} */
