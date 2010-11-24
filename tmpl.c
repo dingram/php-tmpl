@@ -356,6 +356,22 @@ PHP_METHOD(tt, tokenizeLoopEnd)
 /* }}} */
 
 
+/* {{{ proto string TextTemplate::compile(string template)
+   Compile the template to an internal representation */
+PHP_METHOD(tt, compile)
+{
+	char *template;
+	int template_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &template, &template_len) == FAILURE) {
+		return;
+	}
+
+	RETURN_FALSE;
+}
+/* }}} */
+
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_noparams, 0, 0, 0)
 ZEND_END_ARG_INFO()
@@ -389,6 +405,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_set, 0, 0, 1)
 	ZEND_ARG_INFO(0, replacement)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_compile, 0, 0, 1)
+	ZEND_ARG_INFO(1, template)
+ZEND_END_ARG_INFO()
+
 
 static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
@@ -403,7 +423,7 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	//PHP_ME(tt, get,						arginfo_tmpl_get,					ZEND_ACC_PUBLIC)
 	//PHP_ME(tt, set,						arginfo_tmpl_set,					ZEND_ACC_PUBLIC)
-	//PHP_ME(tt, compile,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
+	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	//PHP_ME(tt, process,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
