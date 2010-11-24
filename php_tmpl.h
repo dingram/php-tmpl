@@ -12,11 +12,11 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author:                                                              |
+  | Author: Dave Ingram <php@dmi.me.uk>                                  |
   +----------------------------------------------------------------------+
 */
 
-/* $Id: header 297205 2010-03-30 21:09:07Z johannes $ */
+/* $Id$ */
 
 #ifndef PHP_TMPL_H
 #define PHP_TMPL_H
