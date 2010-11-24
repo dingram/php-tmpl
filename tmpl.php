@@ -57,3 +57,18 @@ test_fn('tmpl_skip_tag', 'asdf<!--{TAG}->STILL_TAG<!--{TAG2}-->');
 test_fn('tmpl_skip_tag', '}-->');
 test_fn('tmpl_skip_tag', '<!--{');
 test_fn('tmpl_skip_tag', '');
+
+print "\nuntil_tag:\n";
+test_fn('tmpl_until_tag', 'no tag here!');
+test_fn('tmpl_until_tag', '<!--{TAG}-->');
+test_fn('tmpl_until_tag', 'asdf<!--{TAG}-->');
+test_fn('tmpl_until_tag', '<!--{TAG}-->asdf');
+test_fn('tmpl_until_tag', 'asdf<!--{TAG}-->asdf');
+test_fn('tmpl_until_tag', 'asdf<!--{TAG}-->asdf<!--{TAG2}-->');
+test_fn('tmpl_until_tag', 'asdf<!--{TAG}--><!--{TAG2}-->');
+print "Pathological:\n";
+test_fn('tmpl_until_tag', 'asdf<!--TAG}->NO_TAG<!-{TAG2}-->');
+test_fn('tmpl_until_tag', 'asdf<!--{TAG}->STILL_TAG<!--{TAG2}-->');
+test_fn('tmpl_until_tag', '}-->');
+test_fn('tmpl_until_tag', '<!--{');
+test_fn('tmpl_until_tag', '');

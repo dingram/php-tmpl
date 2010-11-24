@@ -26,6 +26,7 @@
 
 char *tmpl_parse_get_first_tag(const char *tmpl);
 char *tmpl_parse_skip_tag(const char *tmpl);
+char *tmpl_parse_until_tag(const char *tmpl);
 
 /* Plain content: data.content */
 #define TMPL_EL_CONTENT     0

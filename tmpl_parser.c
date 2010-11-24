@@ -53,8 +53,8 @@ search:
 }
 
 /**
- * Returns the content of the first tag found in the argument (stripped of
- * begin/end delimiters), or NULL if no tags found.
+ * Returns a copy of the content of the first tag found in the argument
+ * (stripped of begin/end delimiters), or NULL if no tags found.
  */
 char *tmpl_parse_get_first_tag(const char *tmpl) {
 	char *tagstart = tmpl_parse_find_tag_open(tmpl);
@@ -70,8 +70,8 @@ char *tmpl_parse_get_first_tag(const char *tmpl) {
 }
 
 /**
- * Returns a pointer to the part of the argument after the first tag found, or
- * NULL if there are no more tags.
+ * Returns a pointer (not a copy!) to the part of the argument after the first
+ * tag found, or NULL if there are no more tags.
  */
 char *tmpl_parse_skip_tag(const char *tmpl) {
 	char *tagstart = tmpl_parse_find_tag_open(tmpl);
@@ -80,6 +80,23 @@ char *tmpl_parse_skip_tag(const char *tmpl) {
 		return NULL;
 	}
 	return tagend+sizeof(TMPL_T_POST)-1;
+}
+
+/**
+ * Returns a copy of the part of the argument before the first tag found, or
+ * NULL if there are no tags
+ */
+char *tmpl_parse_until_tag(const char *tmpl) {
+	char *tagstart = tmpl_parse_find_tag_open(tmpl);
+	char *tagend   = tmpl_parse_find_tag_close(tagstart);
+	if (!tagstart || !tagend) {
+		return NULL;
+	}
+	int tag_pos = tagstart-tmpl;
+	char *frag = emalloc(tag_pos+1);
+	memset(frag, 0, tag_pos+1);
+	strncpy(frag, tmpl, tag_pos);
+	return frag;
 }
 
 

@@ -562,11 +562,33 @@ PHP_FUNCTION(tmpl_skip_tag)
 /* }}} */
 
 
+/* {{{ proto string tmpl_until_tag(string template)
+   Return the string following the first tag from the given template, or FALSE if no tags */
+PHP_FUNCTION(tmpl_until_tag)
+{
+	char *template = NULL;
+	int template_len;
+	char *tag;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &template, &template_len) == FAILURE) {
+		return;
+	}
+
+	if (tag = tmpl_parse_until_tag(template)) {
+		RETURN_STRING(tag, 0);
+	} else {
+		RETURN_STRINGL(template, template_len, 1);
+	}
+}
+/* }}} */
+
+
 /* {{{ tmpl_functions[]
  */
 const zend_function_entry tmpl_functions[] = {
 	PHP_FE(tmpl_get_first_tag,	NULL)		/* For testing, remove later. */
 	PHP_FE(tmpl_skip_tag,	NULL)		/* For testing, remove later. */
+	PHP_FE(tmpl_until_tag,	NULL)		/* For testing, remove later. */
 	{NULL, NULL, NULL}	/* Must be the last line in tmpl_functions[] */
 };
 /* }}} */
