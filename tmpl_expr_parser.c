@@ -22,6 +22,11 @@
 #include "tmpl_expr_parser.h"
 
 
+void tmpl_expr_free(php_tt_tmpl_expr *expr) {
+	// TODO: write
+	if (!expr) return;
+	efree(expr);
+}
 
 
 /*

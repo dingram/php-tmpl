@@ -584,12 +584,34 @@ PHP_FUNCTION(tmpl_until_tag)
 /* }}} */
 
 
+/* {{{ proto string tmpl_parse(string template)
+   */
+PHP_FUNCTION(tmpl_parse)
+{
+	char *template = NULL;
+	int template_len;
+	php_tt_tmpl_el *tmpl = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &template, &template_len) == FAILURE) {
+		return;
+	}
+
+	tmpl = tmpl_parse(template);
+	tmpl_dump(tmpl);
+	tmpl_free(tmpl);
+
+	RETURN_NULL();
+}
+/* }}} */
+
+
 /* {{{ tmpl_functions[]
  */
 const zend_function_entry tmpl_functions[] = {
 	PHP_FE(tmpl_get_first_tag,	NULL)		/* For testing, remove later. */
 	PHP_FE(tmpl_skip_tag,	NULL)		/* For testing, remove later. */
 	PHP_FE(tmpl_until_tag,	NULL)		/* For testing, remove later. */
+	PHP_FE(tmpl_parse,	NULL)		/* For testing, remove later. */
 	{NULL, NULL, NULL}	/* Must be the last line in tmpl_functions[] */
 };
 /* }}} */

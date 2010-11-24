@@ -72,3 +72,23 @@ test_fn('tmpl_until_tag', 'asdf<!--{TAG}->STILL_TAG<!--{TAG2}-->');
 test_fn('tmpl_until_tag', '}-->');
 test_fn('tmpl_until_tag', '<!--{');
 test_fn('tmpl_until_tag', '');
+
+print "\n\n\nParsing:\n";
+
+function test_parse($tpl) {
+	print str_repeat('=', 78)."\n";
+	print "$tpl\n";
+	print str_repeat('-', 78)."\n";
+	tmpl_parse($tpl);
+	print str_repeat('=', 78)."\n\n";
+}
+
+test_parse('');
+test_parse('asdf');
+test_parse('<!--{TAG}-->');
+test_parse('asdf<!--{TAG}-->');
+test_parse('<!--{TAG}-->asdf');
+test_parse('asdf<!--{TAG}-->wtf');
+test_parse('<!--{?TAG}-->');
+test_parse('<!--{:?TAG}-->');
+test_parse('<!--{:}-->');

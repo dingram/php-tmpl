@@ -82,6 +82,8 @@ typedef struct php_tt_tmpl_expr_t {
 } php_tt_tmpl_expr;
 
 
+void tmpl_expr_free(php_tt_tmpl_expr *expr);
+
 
 #endif	/* PHP_TMPL_EXPR_PARSER_H */
 

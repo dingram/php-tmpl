@@ -24,15 +24,13 @@
 #include "tmpl_expr_parser.h"
 #include "ext/standard/php_string.h"
 
-char *tmpl_parse_get_first_tag(const char *tmpl);
-char *tmpl_parse_skip_tag(const char *tmpl);
-char *tmpl_parse_until_tag(const char *tmpl);
+/* NOTE: in SUBST, content_item is the default value */
 
 /* Plain content: data.content */
 #define TMPL_EL_CONTENT     0
-/* Simple substitution: data.var */
+/* Simple substitution: data.var, content_item */
 #define TMPL_EL_SUBST       1
-/* Expression substitution: data.expr */
+/* Expression substitution: data.expr, content_item */
 #define TMPL_EL_SUBST_EXPR  2
 /* Simple conditional: data.var, next_cond, content_item */
 #define TMPL_EL_COND        3
@@ -47,20 +45,33 @@ char *tmpl_parse_until_tag(const char *tmpl);
 /* Loop "else": content_item */
 #define TMPL_EL_LOOP_ELSE   8
 
+#define TMPL_EL_HAS_CONTENT(x) ((x)->type == TMPL_EL_CONTENT)
+#define TMPL_EL_HAS_VAR(x)     ((x)->type == TMPL_EL_SUBST || (x)->type == TMPL_EL_COND || (x)->type == TMPL_EL_LOOP_VAR)
+#define TMPL_EL_HAS_EXPR(x)    ((x)->type == TMPL_EL_SUBST_EXPR || (x)->type == TMPL_EL_COND_EXPR)
+#define TMPL_EL_HAS_RANGE(x)   ((x)->type == TMPL_EL_LOOP_RANGE)
+
+#define TMPL_EL_HAS_CONTENT_ITEM(x) (                                                                       \
+			(x)->type == TMPL_EL_COND || (x)->type == TMPL_EL_COND_EXPR || (x)->type == TMPL_EL_ELSE ||     \
+			(x)->type == TMPL_EL_LOOP_RANGE || (x)->type == TMPL_EL_LOOP_VAR || (x)->type == TMPL_LOOP_ELSE \
+		)
+
+#define TMPL_EL_HAS_NEXT_COND(x) (                                              \
+			(x)->type == TMPL_EL_COND || (x)->type == TMPL_EL_COND_EXPR ||      \
+			(x)->type == TMPL_EL_LOOP_RANGE || (x)->type == TMPL_EL_LOOP_VAR || \
+		)
+
 typedef struct php_tt_tmpl_el_t {
 	int type;
 	union {
 		struct {
-			char *name;
-			long cname;
-		} var;
-		struct {
-			char *content;
-			long content_len;
+			char *data;
+			long len;
 		} content;
 		struct {
-			php_tt_tmpl_expr *expr;
-		} expr;
+			char *name;
+			long len;
+		} var;
+		php_tt_tmpl_expr *expr;
 		struct {
 			long begin;
 			long end;
@@ -75,6 +86,13 @@ typedef struct php_tt_tmpl_el_t {
 	struct php_tt_tmpl_el_t *content_item;
 } php_tt_tmpl_el;
 
+
+char *tmpl_parse_get_first_tag(const char *tmpl);
+char *tmpl_parse_skip_tag(const char *tmpl);
+char *tmpl_parse_until_tag(const char *tmpl);
+php_tt_tmpl_el *tmpl_parse(const char *tmpl);
+void tmpl_dump(php_tt_tmpl_el *tmpl);
+void tmpl_free(php_tt_tmpl_el *tmpl);
 
 
 #endif	/* PHP_TMPL_PARSER_H */
