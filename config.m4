@@ -59,5 +59,5 @@ if test "$PHP_TMPL" != "no"; then
   dnl
   dnl PHP_SUBST(TMPL_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(tmpl, tmpl.c, $ext_shared)
+  PHP_NEW_EXTENSION(tmpl, tmpl.c tmpl_parser.c tmpl_expr_parser.c, $ext_shared)
 fi

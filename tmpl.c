@@ -520,19 +520,44 @@ PHP_MINFO_FUNCTION(tmpl)
 /* }}} */
 
 
-
-PHP_FUNCTION(confirm_tmpl_compiled)
+/* {{{ proto string tmpl_get_first_tag(string template)
+   Extract the first tag from the given template or FALSE if no tags */
+PHP_FUNCTION(tmpl_get_first_tag)
 {
-	char *arg = NULL;
-	int arg_len, len;
-	char *strg;
+	char *template = NULL;
+	int template_len;
+	char *tag;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &template, &template_len) == FAILURE) {
 		return;
 	}
 
-	len = spprintf(&strg, 0, "Congratulations! Module %.78s is now compiled into PHP.", "tmpl", arg);
-	RETURN_STRINGL(strg, len, 0);
+	if (tag = tmpl_parse_get_first_tag(template)) {
+		RETURN_STRING(tag, 0);
+	} else {
+		RETURN_FALSE;
+	}
+}
+/* }}} */
+
+
+/* {{{ proto string tmpl_skip_tag(string template)
+   Return the string following the first tag from the given template, or FALSE if no tags */
+PHP_FUNCTION(tmpl_skip_tag)
+{
+	char *template = NULL;
+	int template_len;
+	char *tag;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &template, &template_len) == FAILURE) {
+		return;
+	}
+
+	if (tag = tmpl_parse_skip_tag(template)) {
+		RETURN_STRING(tag, 1);
+	} else {
+		RETURN_FALSE;
+	}
 }
 /* }}} */
 
@@ -540,7 +565,8 @@ PHP_FUNCTION(confirm_tmpl_compiled)
 /* {{{ tmpl_functions[]
  */
 const zend_function_entry tmpl_functions[] = {
-	PHP_FE(confirm_tmpl_compiled,	NULL)		/* For testing, remove later. */
+	PHP_FE(tmpl_get_first_tag,	NULL)		/* For testing, remove later. */
+	PHP_FE(tmpl_skip_tag,	NULL)		/* For testing, remove later. */
 	{NULL, NULL, NULL}	/* Must be the last line in tmpl_functions[] */
 };
 /* }}} */
