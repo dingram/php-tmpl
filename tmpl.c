@@ -194,6 +194,59 @@ PHP_METHOD(tt, tokenize)
 /* }}} */
 
 
+/* {{{ proto string TextTemplate::tokenizeElse(void)
+   Create an "else" template tag */
+PHP_METHOD(tt, tokenizeElse)
+{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+		return;
+	}
+
+	RETURN_STRING(TMPL_T_PRE TMPL_T_ELSE TMPL_T_POST, 1);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenizeConditionalEnd(void)
+   Create a conditional section end template tag */
+PHP_METHOD(tt, tokenizeConditionalEnd)
+{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+		return;
+	}
+
+	RETURN_STRING(TMPL_T_PRE TMPL_T_END TMPL_T_COND TMPL_T_POST, 1);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenize(void)
+   Create a loop "else" template tag */
+PHP_METHOD(tt, tokenizeLoopElse)
+{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+		return;
+	}
+
+	RETURN_STRING(TMPL_T_PRE TMPL_T_LOOP TMPL_T_ELSE TMPL_T_POST, 1);
+}
+/* }}} */
+
+
+/* {{{ proto string TextTemplate::tokenizeLoopEnd(void)
+   Create a loop section end template tag */
+PHP_METHOD(tt, tokenizeLoopEnd)
+{
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+		return;
+	}
+
+	RETURN_STRING(TMPL_T_PRE TMPL_T_END TMPL_T_LOOP TMPL_T_POST, 1);
+}
+/* }}} */
+
+
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_noparams, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -206,19 +259,17 @@ ZEND_END_ARG_INFO()
 static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
 	PHP_ME(tt, tokenize,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	/*
-	PHP_ME(tt, tokenizeConditional,		arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeElseIf,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	//PHP_ME(tt, tokenizeConditional,		arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	//PHP_ME(tt, tokenizeElseIf,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeElse,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeConditionalEnd,	arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeLoop,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	//PHP_ME(tt, tokenizeLoop,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams, 			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, get,						arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	PHP_ME(tt, set,						arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	PHP_ME(tt, compile,					arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	PHP_ME(tt, process,					arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
-	*/
+	//PHP_ME(tt, get,						arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
+	//PHP_ME(tt, set,						arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
+	//PHP_ME(tt, compile,					arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
+	//PHP_ME(tt, process,					arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
 	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,			ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
