@@ -45,7 +45,10 @@
 /* Loop "else": content_item */
 #define TMPL_EL_LOOP_ELSE   8
 
-#define TMPL_EL_HAS_CONTENT(x) ((x)->type == TMPL_EL_CONTENT)
+/* Error message in data.content */
+#define TMPL_EL_ERROR		255
+
+#define TMPL_EL_HAS_CONTENT(x) ((x)->type == TMPL_EL_CONTENT || (x)->type == TMPL_EL_ERROR)
 #define TMPL_EL_HAS_VAR(x)     ((x)->type == TMPL_EL_SUBST || (x)->type == TMPL_EL_COND || (x)->type == TMPL_EL_LOOP_VAR)
 #define TMPL_EL_HAS_EXPR(x)    ((x)->type == TMPL_EL_SUBST_EXPR || (x)->type == TMPL_EL_COND_EXPR)
 #define TMPL_EL_HAS_RANGE(x)   ((x)->type == TMPL_EL_LOOP_RANGE)

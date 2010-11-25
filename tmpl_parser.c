@@ -78,49 +78,71 @@ char *tmpl_parse_until_tag(const char *tmpl) {
 
 #define TMPL_CREATE_EL(x) do {(x)=emalloc(sizeof(php_tt_tmpl_el));memset((x),0,sizeof(php_tt_tmpl_el));} while (0)
 
-php_tt_tmpl_el *tmpl_parse(const char *tmpl) {
-	php_tt_tmpl_el *root, *cur, *tmp;
+static php_tt_tmpl_el *_tmpl_parse(char const * const tmpl, int depth) {
+	php_tt_tmpl_el *root, *cur;
+	char const *tagstart;
+	char const *tagend;
+	char const *curpos;
+
+	if (!tmpl) {
+		return NULL;
+	}
+
 	TMPL_CREATE_EL(root);
+	cur=root;
+	curpos = tmpl;
 
-	char *tagstart = tmpl_parse_find_tag_open(tmpl);
-	char *tagend   = tmpl_parse_find_tag_close(tagstart);
-	if (!tagstart || !tagend) {
-		root->type = TMPL_EL_CONTENT;
-		root->data.content.data = estrdup(tmpl);
-		root->data.content.len = strlen(tmpl);
-		return root;
-	}
-
-	if (tagstart > tmpl) {
-		root->type = TMPL_EL_CONTENT;
-		root->data.content.len = tagstart-tmpl;
-		root->data.content.data = emalloc(root->data.content.len+1);
-		memset(root->data.content.data, 0, root->data.content.len+1);
-		strncpy(root->data.content.data, tmpl, root->data.content.len);
-	} else {
-		tagstart += strlen(TMPL_T_PRE);
-
-		if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-			root->type = TMPL_EL_COND;
-			tagstart += strlen(TMPL_T_COND);
-		} else if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
-			tagstart += strlen(TMPL_T_ELSE);
-			if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-				root->type = TMPL_EL_COND;
-				tagstart += strlen(TMPL_T_COND);
-			} else {
-				root->type = TMPL_EL_ELSE;
-			}
-		} else {
-			root->type = TMPL_EL_SUBST;
+	do {
+		if (curpos > tmpl) {
+			TMPL_CREATE_EL(cur->next);
+			cur = cur->next;
 		}
-		root->data.var.len = tagend-tagstart;
-		root->data.var.name = emalloc(root->data.var.len+1);
-		memset(root->data.var.name, 0, root->data.var.len+1);
-		strncpy(root->data.var.name, tagstart, root->data.var.len);
-	}
+		tagstart = tmpl_parse_find_tag_open(curpos);
+		tagend   = tmpl_parse_find_tag_close(tagstart);
+		if (!tagstart || !tagend) {
+			cur->type = TMPL_EL_CONTENT;
+			cur->data.content.data = estrdup(curpos);
+			cur->data.content.len = strlen(curpos);
+			return root;
+		}
+
+		if (tagstart > curpos) {
+			cur->type = TMPL_EL_CONTENT;
+			cur->data.content.len = tagstart-curpos;
+			cur->data.content.data = emalloc(cur->data.content.len+1);
+			memset(cur->data.content.data, 0, cur->data.content.len+1);
+			strncpy(cur->data.content.data, curpos, cur->data.content.len);
+			curpos += cur->data.content.len;
+		} else {
+			tagstart += strlen(TMPL_T_PRE);
+
+			if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
+				cur->type = TMPL_EL_COND;
+				tagstart += strlen(TMPL_T_COND);
+			} else if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
+				tagstart += strlen(TMPL_T_ELSE);
+				if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
+					cur->type = TMPL_EL_COND;
+					tagstart += strlen(TMPL_T_COND);
+				} else {
+					cur->type = TMPL_EL_ELSE;
+				}
+			} else {
+				cur->type = TMPL_EL_SUBST;
+			}
+			cur->data.var.len = tagend-tagstart;
+			cur->data.var.name = emalloc(cur->data.var.len+1);
+			memset(cur->data.var.name, 0, cur->data.var.len+1);
+			strncpy(cur->data.var.name, tagstart, cur->data.var.len);
+			curpos = tagend + strlen(TMPL_T_POST);
+		}
+	} while (*curpos);
 
 	return root;
+}
+
+php_tt_tmpl_el *tmpl_parse(const char *tmpl) {
+	return _tmpl_parse(tmpl, 0);
 }
 
 static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
@@ -173,6 +195,10 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 		case TMPL_EL_LOOP_ELSE:
 			/* Loop "else": content_item */
 			php_printf("Unknown type code %d\n", tmpl->type);
+			break;
+		case TMPL_EL_ERROR:
+			/* Error message: data.content */
+			php_printf("%sERROR: %s\n", ind, tmpl->data.content.data);
 			break;
 		default:
 			php_printf("Unknown type code %d\n", tmpl->type);
