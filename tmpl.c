@@ -598,6 +598,9 @@ PHP_FUNCTION(tmpl_parse)
 
 	tmpl = tmpl_parse(template);
 	tmpl_dump(tmpl);
+	char *tmp = tmpl_use(tmpl, NULL);
+	php_printf("Result: \"%s\"\n", tmp);
+	efree(tmp);
 	tmpl_free(tmpl);
 
 	RETURN_NULL();

@@ -145,8 +145,30 @@ php_tt_tmpl_el *tmpl_parse(char const * const tmpl) {
 	return _tmpl_parse(tmpl, 0);
 }
 
-smart_str *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars) {
-	return NULL;
+char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars) {
+	php_tt_tmpl_el *cur;
+	smart_str *out = NULL;
+	char *final_out;
+	out = emalloc(sizeof(smart_str));
+	memset(out, 0, sizeof(smart_str));
+	smart_str_0(out);
+
+	for (cur = tmpl; cur; cur = cur->next) {
+		switch (cur->type) {
+			case TMPL_EL_CONTENT:
+				if (*(cur->data.content.data))
+					smart_str_appends(out, cur->data.content.data);
+				break;
+		}
+	}
+
+	if (out->c) {
+		final_out = estrndup(out->c, out->len);
+	} else {
+		final_out = estrdup("");
+	}
+	smart_str_free(out);
+	return final_out;
 }
 
 static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
