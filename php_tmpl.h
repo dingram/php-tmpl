@@ -28,6 +28,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include "ext/standard/php_smart_str.h"
 
 extern zend_module_entry tmpl_module_entry;
 #define phpext_tmpl_ptr &tmpl_module_entry

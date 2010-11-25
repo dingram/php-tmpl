@@ -21,11 +21,11 @@
 #include "php_tmpl.h"
 #include "tmpl_parser.h"
 
-static inline char *tmpl_parse_find_tag_open(const char *tmpl) {
+static inline char *tmpl_parse_find_tag_open(char const * const tmpl) {
 	return tmpl ? strstr(tmpl, TMPL_T_PRE) : NULL;
 }
 
-static inline char *tmpl_parse_find_tag_close(const char *tmpl) {
+static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 	return tmpl ? strstr(tmpl, TMPL_T_POST) : NULL;
 }
 
@@ -33,7 +33,7 @@ static inline char *tmpl_parse_find_tag_close(const char *tmpl) {
  * Returns a copy of the content of the first tag found in the argument
  * (stripped of begin/end delimiters), or NULL if no tags found.
  */
-char *tmpl_parse_get_first_tag(const char *tmpl) {
+char *tmpl_parse_get_first_tag(char const * const tmpl) {
 	char *tagstart = tmpl_parse_find_tag_open(tmpl);
 	char *tagend   = tmpl_parse_find_tag_close(tagstart);
 	if (!tagstart || !tagend) {
@@ -50,7 +50,7 @@ char *tmpl_parse_get_first_tag(const char *tmpl) {
  * Returns a pointer (not a copy!) to the part of the argument after the first
  * tag found, or NULL if there are no more tags.
  */
-char *tmpl_parse_skip_tag(const char *tmpl) {
+char *tmpl_parse_skip_tag(char const * const tmpl) {
 	char *tagstart = tmpl_parse_find_tag_open(tmpl);
 	char *tagend   = tmpl_parse_find_tag_close(tagstart);
 	if (!tagstart || !tagend) {
@@ -63,7 +63,7 @@ char *tmpl_parse_skip_tag(const char *tmpl) {
  * Returns a copy of the part of the argument before the first tag found, or
  * NULL if there are no tags
  */
-char *tmpl_parse_until_tag(const char *tmpl) {
+char *tmpl_parse_until_tag(char const * const tmpl) {
 	char *tagstart = tmpl_parse_find_tag_open(tmpl);
 	char *tagend   = tmpl_parse_find_tag_close(tagstart);
 	if (!tagstart || !tagend) {
@@ -141,8 +141,12 @@ static php_tt_tmpl_el *_tmpl_parse(char const * const tmpl, int depth) {
 	return root;
 }
 
-php_tt_tmpl_el *tmpl_parse(const char *tmpl) {
+php_tt_tmpl_el *tmpl_parse(char const * const tmpl) {
 	return _tmpl_parse(tmpl, 0);
+}
+
+smart_str *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars) {
+	return NULL;
 }
 
 static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
