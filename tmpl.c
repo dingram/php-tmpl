@@ -19,7 +19,6 @@
 /* $Id$ */
 
 #include "php_tmpl.h"
-#include "tmpl_parser.h"
 
 static zend_class_entry *tto_class_entry;
 static zend_object_handlers tt_object_handlers;
@@ -69,6 +68,7 @@ static void tt_object_free_storage(void *obj TSRMLS_DC) /* {{{ */
 	zend_object_std_dtor(&tto->zo TSRMLS_CC);
 #endif
 
+	if (tto->tmpl) tmpl_free(tto->tmpl);
 	efree(obj);
 }
 /* }}} */
@@ -163,6 +163,9 @@ PHP_METHOD(tt, __destruct)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
 		return;
 	}
+
+	if (tto->tmpl)
+		tmpl_free(tto->tmpl);
 
 	tmpl_prop_hash_dtor(tto TSRMLS_CC);
 }
@@ -363,12 +366,59 @@ PHP_METHOD(tt, compile)
 {
 	char *template;
 	int template_len;
+	zval *obj;
+	php_tt_object *tto;
+
+	obj = getThis();
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &template, &template_len) == FAILURE) {
 		return;
 	}
 
-	RETURN_FALSE;
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	if (tto->tmpl) {
+		tmpl_free(tto->tmpl);
+		tto->tmpl = NULL;
+	}
+
+	tto->tmpl = tmpl_parse(template);
+
+	if (tto->tmpl) {
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
+}
+/* }}} */
+
+/* {{{ proto string TextTemplate::render([array vars])
+   Render a template */
+PHP_METHOD(tt, render)
+{
+	zval *vars = NULL;
+	HashTable *overrides = NULL;
+	char *rendered;
+	zval *obj;
+	php_tt_object *tto;
+
+	obj = getThis();
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|a", &vars) == FAILURE) {
+		return;
+	}
+
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	if (vars) {
+		overrides = HASH_OF(vars);
+	}
+
+	// TODO: merge overrides with existing vars
+
+	rendered = tmpl_use(tto->tmpl, overrides);
+
+	RETURN_STRING(rendered, 0);
 }
 /* }}} */
 
@@ -407,7 +457,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_set, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_compile, 0, 0, 1)
-	ZEND_ARG_INFO(1, template)
+	ZEND_ARG_INFO(0, template)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_render, 0, 0, 0)
+	ZEND_ARG_INFO(0, overrides)
 ZEND_END_ARG_INFO()
 
 
@@ -424,7 +478,8 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	//PHP_ME(tt, get,						arginfo_tmpl_get,					ZEND_ACC_PUBLIC)
 	//PHP_ME(tt, set,						arginfo_tmpl_set,					ZEND_ACC_PUBLIC)
-	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, render,					arginfo_tmpl_render,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	//PHP_ME(tt, process,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}

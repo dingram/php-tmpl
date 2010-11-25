@@ -149,6 +149,8 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars) {
 	php_tt_tmpl_el *cur;
 	smart_str *out = NULL;
 	char *final_out;
+	zval **dest_entry = NULL;
+
 	out = emalloc(sizeof(smart_str));
 	memset(out, 0, sizeof(smart_str));
 	smart_str_0(out);
@@ -158,6 +160,19 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars) {
 			case TMPL_EL_CONTENT:
 				if (*(cur->data.content.data))
 					smart_str_appends(out, cur->data.content.data);
+				break;
+			case TMPL_EL_SUBST:
+				if (!cur->data.var.len) // error?
+					break;
+				if (vars && zend_hash_find(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS) {
+					smart_str_appends(out, Z_STRVAL_PP(dest_entry));
+				} else {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not find a replacement for tag \"%s\"", cur->data.var.name);
+
+					smart_str_appends(out, TMPL_T_PRE);
+					smart_str_appends(out, cur->data.var.name);
+					smart_str_appends(out, TMPL_T_POST);
+				}
 				break;
 		}
 	}

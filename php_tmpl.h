@@ -29,6 +29,7 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
+#include "tmpl_parser.h"
 
 extern zend_module_entry tmpl_module_entry;
 #define phpext_tmpl_ptr &tmpl_module_entry
@@ -74,11 +75,9 @@ PHP_MINFO_FUNCTION(tmpl);
 typedef struct {
 	zend_object zo;
 	HashTable *properties;
-	//smart_str lastresponse;
-	//smart_str headers_in;
 	void ***thread_ctx;
 	zval *this_ptr;
-	//zval *debugArr;
+	php_tt_tmpl_el *tmpl;
 } php_tt_object;
 
 #define FREE_ARGS_HASH(a)	\
