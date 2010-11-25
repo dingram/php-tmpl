@@ -27,23 +27,23 @@
 /* NOTE: in SUBST, content_item is the default value */
 
 /* Plain content: data.content */
-#define TMPL_EL_CONTENT     0
+#define TMPL_EL_CONTENT     1
 /* Simple substitution: data.var, content_item */
-#define TMPL_EL_SUBST       1
+#define TMPL_EL_SUBST       2
 /* Expression substitution: data.expr, content_item */
-#define TMPL_EL_SUBST_EXPR  2
+#define TMPL_EL_SUBST_EXPR  3
 /* Simple conditional: data.var, next_cond, content_item */
-#define TMPL_EL_COND        3
+#define TMPL_EL_COND        4
 /* Expression conditional: data.expr, next_cond, content_item */
-#define TMPL_EL_COND_EXPR   4
+#define TMPL_EL_COND_EXPR   5
 /* Else block: content_item */
-#define TMPL_EL_ELSE        5
+#define TMPL_EL_ELSE        6
 /* Loop over range: data.range, content_item, next_cond */
-#define TMPL_EL_LOOP_RANGE  6
+#define TMPL_EL_LOOP_RANGE  7
 /* Loop over array var: data.var, content_item, next_cond */
-#define TMPL_EL_LOOP_VAR    7
+#define TMPL_EL_LOOP_VAR    8
 /* Loop "else": content_item */
-#define TMPL_EL_LOOP_ELSE   8
+#define TMPL_EL_LOOP_ELSE   9
 
 /* Error message in data.content */
 #define TMPL_EL_ERROR		255
@@ -53,9 +53,19 @@
 #define TMPL_EL_HAS_EXPR(x)    ((x)->type == TMPL_EL_SUBST_EXPR || (x)->type == TMPL_EL_COND_EXPR)
 #define TMPL_EL_HAS_RANGE(x)   ((x)->type == TMPL_EL_LOOP_RANGE)
 
+#define TMPL_IS_COND(x)    ((x) == TMPL_EL_COND || (x) == TMPL_EL_COND_EXPR)
+#define TMPL_IS_COND_EX(x) ((x) == TMPL_EL_COND || (x) == TMPL_EL_COND_EXPR || (x) == TMPL_EL_ELSE)
+#define TMPL_IS_LOOP(x)    ((x) == TMPL_EL_LOOP_RANGE || (x) == TMPL_EL_LOOP_VAR)
+#define TMPL_IS_LOOP_EX(x) ((x) == TMPL_EL_LOOP_RANGE || (x) == TMPL_EL_LOOP_VAR || (x) == TMPL_EL_LOOP_ELSE)
+
+#define TMPL_EL_IS_COND(x)    (TMPL_IS_COND((x)->type))
+#define TMPL_EL_IS_COND_EX(x) (TMPL_IS_COND_EX((x)->type))
+#define TMPL_EL_IS_LOOP(x)    (TMPL_IS_LOOP((x)->type))
+#define TMPL_EL_IS_LOOP_EX(x) (TMPL_IS_LOOP_EX((x)->type))
+
 #define TMPL_EL_HAS_CONTENT_ITEM(x) (                                                                       \
 			(x)->type == TMPL_EL_COND || (x)->type == TMPL_EL_COND_EXPR || (x)->type == TMPL_EL_ELSE ||     \
-			(x)->type == TMPL_EL_LOOP_RANGE || (x)->type == TMPL_EL_LOOP_VAR || (x)->type == TMPL_LOOP_ELSE \
+			(x)->type == TMPL_EL_LOOP_RANGE || (x)->type == TMPL_EL_LOOP_VAR || (x)->type == TMPL_EL_LOOP_ELSE \
 		)
 
 #define TMPL_EL_HAS_NEXT_COND(x) (                                              \
