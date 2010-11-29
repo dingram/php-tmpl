@@ -21,5 +21,5 @@ function test_parse($tpl) {
 test_parse('abcd<!--{?TAG}-->efgh<!--{TAG}-->ijkl<!--{/?}-->mnop');
 test_parse('abcd<!--{?TAG}-->efgh<!--{TAG}-->ijkl<!--{:}-->mnop<!--{/?}-->qrst');
 test_parse("abcd<!--{?TAG}-->e<!--{?BAR}-->f<!--{:}-->g<!--{/?}-->h<!--{TAG}-->ijkl<!--{:}-->m<!--{?BAR}-->n<!--{:}-->o<!--{/?}-->p<!--{/?}-->qrst");
-#test_parse('abcd<!--{?TAG}-->efgh<!--{TAG}-->ijkl<!--{:?TAG2}-->mnop<!--{/?}-->qrst');
-#test_parse('abcd<!--{?TAG}-->efgh<!--{TAG}-->ijkl<!--{:?TAG2}-->mnop<!--{:}-->qsrt<!--{/?}-->uvwx');
+test_parse('abcd<!--{?TAG}-->efgh<!--{TAG}-->ijkl<!--{:?TAG2}-->mnop<!--{/?}-->qrst');
+test_parse('abcd<!--{?TAG}-->efgh<!--{TAG}-->ijkl<!--{:?TAG2}-->mnop<!--{:}-->qsrt<!--{/?}-->uvwx');

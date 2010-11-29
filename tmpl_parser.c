@@ -144,13 +144,6 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 		if (cur->type) {
 			php_tt_tmpl_el *tmp = NULL;
 
-			/*
-			PARSER_DUMP(prev);
-			PARSER_DUMP(cur);
-			if (prev) PARSER_DUMP(prev->next);
-			PARSER_DUMP(root);
-			*/
-
 			// create next element in the chain
 			prev = cur;
 			TMPL_CREATE_EL(prev->next);
@@ -261,9 +254,28 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 	PARSER_RETURN();
 }
 
+/**
+ * Go through the tree and post-process to set up ->next for all ->next_cond items
+ */
+php_tt_tmpl_el *_tmpl_postprocess(php_tt_tmpl_el *tmpl) {
+	php_tt_tmpl_el *root = tmpl;
+	if (!tmpl) return;
+	while (tmpl) {
+		php_tt_tmpl_el *tmp = tmpl->next_cond;
+		while (tmp) {
+			if (tmp->content_item) tmp->content_item = _tmpl_postprocess(tmp->content_item);
+			if (!tmp->next_cond) tmp->next = tmpl->next;
+			tmp = tmp->next_cond;
+		}
+		if (tmpl->content_item) tmpl->content_item = _tmpl_postprocess(tmpl->content_item);
+		tmpl = tmpl->next;
+	}
+	return root;
+}
+
 php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC) {
 	char const * tmp = tmpl;
-	return _tmpl_parse(&tmp, NULL TSRMLS_CC);
+	return _tmpl_postprocess(_tmpl_parse(&tmp, NULL TSRMLS_CC));
 }
 
 char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
@@ -334,6 +346,7 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 				// if we have a next condition, then the final next_condition's
 				// next will carry us on properly
 				if (tmpl->next_cond->type != TMPL_EL_ELSE) php_printf("%sELSE...\n", ind);
+				_tmpl_dump(tmpl->next_cond, ind_lvl);
 				efree(ind);
 				return;
 			}
