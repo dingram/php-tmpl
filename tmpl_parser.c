@@ -351,8 +351,9 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 		switch (cur->type) {
 			case TMPL_EL_CONTENT:
 				if (*(cur->data.content.data))
-					smart_str_appends(out, cur->data.content.data);
+					smart_str_appendl(out, cur->data.content.data, cur->data.content.len);
 				break;
+
 			case TMPL_EL_SUBST:
 				if (!cur->data.var.len) // error?
 					break;
@@ -362,7 +363,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not find a replacement for tag \"%s\"", cur->data.var.name);
 
 					smart_str_appends(out, TMPL_T_PRE);
-					smart_str_appends(out, cur->data.var.name);
+					smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
 					smart_str_appends(out, TMPL_T_POST);
 				}
 				break;
