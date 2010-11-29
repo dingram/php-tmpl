@@ -77,10 +77,14 @@ char *tmpl_parse_until_tag(char const * const tmpl) {
 }
 
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
-//#define PARSER_DEBUG(m) php_printf(m "\n");
-//#define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__);
+
+#if 1
+#define PARSER_DEBUG(m) php_printf(m "\n");
+#define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__);
+#else
 #define PARSER_DEBUG(m)
 #define PARSER_DEBUGM(m, ...)
+#endif
 
 #define TMPL_CREATE_EL(x) 							do {                                      \
 														(x)=emalloc(sizeof(php_tt_tmpl_el));  \
@@ -155,34 +159,34 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 		tagend   = tmpl_parse_find_tag_close(tagstart);
 		if (!tagstart || !tagend) {
 			// just content remains, so capture that and return
-			PARSER_DEBUG("Pure content, capturing");
+			PARSER_DEBUG("\tPure content, capturing");
 			cur->type = TMPL_EL_CONTENT;
 			cur->data.content.data = estrdup(curpos);
 			cur->data.content.len = strlen(curpos);
 			curpos += cur->data.content.len;
-			PARSER_DEBUGM("Captured content \"%s\"", cur->data.content.data);
+			PARSER_DEBUGM("\t\tCaptured content \"%s\"", cur->data.content.data);
 			PARSER_RETURN();
 		}
 
 		if (tagstart > curpos) {
 			// if there is leading content, capture that and restart the loop
-			PARSER_DEBUG("Leading content, capturing");
+			PARSER_DEBUG("\tLeading content, capturing");
 			cur->type = TMPL_EL_CONTENT;
 			cur->data.content.len = tagstart-curpos;
 			cur->data.content.data = emalloc(cur->data.content.len+1);
 			memset(cur->data.content.data, 0, cur->data.content.len+1);
 			strncpy(cur->data.content.data, curpos, cur->data.content.len);
 			curpos += cur->data.content.len;
-			PARSER_DEBUGM("Captured content \"%s\"", cur->data.content.data);
+			PARSER_DEBUGM("\t\tCaptured content \"%s\"", cur->data.content.data);
 			continue;
 		}
 
 		// skip the opening tag characters
-		PARSER_DEBUG("Skipping open-tag");
+		PARSER_DEBUG("\tSkipping open-tag");
 		tagstart += strlen(TMPL_T_PRE);
 
 		if (!strncmp(tagstart, TMPL_T_END, strlen(TMPL_T_END))) {
-			PARSER_DEBUG("Section end");
+			PARSER_DEBUG("\tSection end");
 			if (!enclosure) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Ignoring orphan end-section at top level");
 			} else {
@@ -210,15 +214,15 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 			}
 
 		} else if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-			PARSER_DEBUG("Conditional");
+			PARSER_DEBUG("\tConditional");
 			cur->type = TMPL_EL_COND;
 			tagstart += strlen(TMPL_T_COND);
 
 		} else if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
-			PARSER_DEBUG("Else");
+			PARSER_DEBUG("\tElse");
 			tagstart += strlen(TMPL_T_ELSE);
 			if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-				PARSER_DEBUG("(if)");
+				PARSER_DEBUG("\t(if)");
 				if (!enclosure) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Ignoring orphan elseif tag at top level");
 					PARSER_ADVANCE_PAST_TAG();
@@ -227,7 +231,7 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 				cur->type = TMPL_EL_COND;
 				tagstart += strlen(TMPL_T_COND);
 				PARSER_CAPTURE_TAG_CONTENT(cur->data.var.name, cur->data.var.len);
-				PARSER_DEBUGM("Tag content: \"%s\"", cur->data.var.name);
+				PARSER_DEBUGM("\t\tTag content: \"%s\"", cur->data.var.name);
 				PARSER_ADVANCE_PAST_TAG();
 			} else {
 				PARSER_ADVANCE_PAST_TAG();
@@ -242,11 +246,11 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 			PARSER_RETURN();
 
 		} else {
-			PARSER_DEBUG("Substitution");
+			PARSER_DEBUG("\tSubstitution");
 			cur->type = TMPL_EL_SUBST;
 		}
 		PARSER_CAPTURE_TAG_CONTENT(cur->data.var.name, cur->data.var.len);
-		PARSER_DEBUGM("Tag content: \"%s\"", cur->data.var.name);
+		PARSER_DEBUGM("\t\tTag content: \"%s\"", cur->data.var.name);
 		PARSER_ADVANCE_PAST_TAG();
 
 		if (TMPL_EL_HAS_CONTENT_ITEM(cur)) {
