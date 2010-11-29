@@ -76,10 +76,24 @@ char *tmpl_parse_until_tag(char const * const tmpl) {
 	return frag;
 }
 
+//#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
+
 #define TMPL_CREATE_EL(x) do {(x)=emalloc(sizeof(php_tt_tmpl_el));memset((x),0,sizeof(php_tt_tmpl_el));} while (0)
 
-static php_tt_tmpl_el *_tmpl_parse(char ** const tmpl, int depth, int enclosure TSRMLS_DC) {
-	php_tt_tmpl_el *root, *cur, *prev;
+#define PARSER_RECURSE() do{cur->content_item = _tmpl_parse(&curpos, cur TSRMLS_CC);} while (0)
+#define PARSER_RETURN() do {*tmpl = curpos; return (root->type)?root:NULL;} while (0)
+#define PARSER_ADVANCE_PAST_TAG() do{curpos = tagend + strlen(TMPL_T_POST);} while (0)
+#define PARSER_DROP_LAST_ELEMENT() do{if (cur==root) { memset(cur,0,sizeof(php_tt_tmpl_el)); } else { efree(cur); cur = prev; if (cur) cur->next = NULL; }} while (0)
+#define PARSER_CAPTURE_TAG_CONTENT(content, len) 	do{                                      \
+														(len) = tagend - tagstart;           \
+														(content) = emalloc((len)+1);        \
+														memset((content), 0, (len)+1);       \
+														strncpy((content), tagstart, (len)); \
+													} while (0)
+
+static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure TSRMLS_DC) {
+	php_tt_tmpl_el *root=NULL, *cur=NULL, *prev=NULL;
+	char const *strstart;
 	char const *tagstart;
 	char const *tagend;
 	char const *curpos;
@@ -89,106 +103,103 @@ static php_tt_tmpl_el *_tmpl_parse(char ** const tmpl, int depth, int enclosure 
 	}
 
 	TMPL_CREATE_EL(root);
-	cur=root;
-	curpos = *tmpl;
+	cur = root;
+	curpos = strstart = *tmpl;
 
 	do {
-		if (curpos > *tmpl) {
+		if (cur->type) {
+			// create next element in the chain
 			prev = cur;
 			TMPL_CREATE_EL(cur->next);
 			cur = cur->next;
 		}
+		// find the next tag
 		tagstart = tmpl_parse_find_tag_open(curpos);
 		tagend   = tmpl_parse_find_tag_close(tagstart);
 		if (!tagstart || !tagend) {
+			// just content remains, so capture that and return
 			cur->type = TMPL_EL_CONTENT;
 			cur->data.content.data = estrdup(curpos);
 			cur->data.content.len = strlen(curpos);
-			return root;
+			curpos += cur->data.content.len;
+			PARSER_RETURN();
 		}
 
 		if (tagstart > curpos) {
+			// if there is leading content, capture that and restart the loop
 			cur->type = TMPL_EL_CONTENT;
 			cur->data.content.len = tagstart-curpos;
 			cur->data.content.data = emalloc(cur->data.content.len+1);
 			memset(cur->data.content.data, 0, cur->data.content.len+1);
 			strncpy(cur->data.content.data, curpos, cur->data.content.len);
 			curpos += cur->data.content.len;
-		} else {
-			tagstart += strlen(TMPL_T_PRE);
+			continue;
+		}
 
-			if (!strncmp(tagstart, TMPL_T_END, strlen(TMPL_T_END))) {
-				if (!depth) {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Ignoring orphan end-section at top level");
+		// skip the opening tag characters
+		tagstart += strlen(TMPL_T_PRE);
+
+		if (!strncmp(tagstart, TMPL_T_END, strlen(TMPL_T_END))) {
+			if (!enclosure) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Ignoring orphan end-section at top level");
+			} else {
+				tagstart += strlen(TMPL_T_END);
+				if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
+					if (!TMPL_EL_IS_COND_EX(enclosure))
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Expecting to end conditional but found end-loop");
+				} else if (!strncmp(tagstart, TMPL_T_LOOP, strlen(TMPL_T_LOOP))) {
+					if (!TMPL_EL_IS_LOOP_EX(enclosure))
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Expecting to end loop but found end-conditional");
 				} else {
-					tagstart += strlen(TMPL_T_END);
-					if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-						if (!TMPL_IS_COND_EX(enclosure))
-							php_error_docref(NULL TSRMLS_CC, E_WARNING, "Expecting to end conditional but found end-loop");
-					} else if (!strncmp(tagstart, TMPL_T_LOOP, strlen(TMPL_T_LOOP))) {
-						if (!TMPL_IS_LOOP_EX(enclosure))
-							php_error_docref(NULL TSRMLS_CC, E_WARNING, "Expecting to end loop but found end-conditional");
-					} else {
-						int len = tagend-tagstart;
-						char *content = emalloc(len+1);
-						memset(content, 0, len+1);
-						strncpy(content, tagstart, len);
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unknown end-section type %s", content);
-						efree(content);
-					}
-					efree(cur);
-					cur = prev;
-					prev->next = NULL;
-					curpos = tagend + strlen(TMPL_T_POST);
-					*tmpl = curpos;
-					return root;
-				}
+					int len;
+					char *content;
+					PARSER_CAPTURE_TAG_CONTENT(content, len);
 
-			} else if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Tried to end unknown section type \"%s\"", content);
+					efree(content);
+				}
+				PARSER_DROP_LAST_ELEMENT();
+				PARSER_ADVANCE_PAST_TAG();
+				PARSER_RETURN();
+			}
+
+		} else if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
+			cur->type = TMPL_EL_COND;
+			tagstart += strlen(TMPL_T_COND);
+
+		} else if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
+			tagstart += strlen(TMPL_T_ELSE);
+			if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
 				cur->type = TMPL_EL_COND;
 				tagstart += strlen(TMPL_T_COND);
-
-			} else if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
-				tagstart += strlen(TMPL_T_ELSE);
-				if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-					cur->type = TMPL_EL_COND;
-					tagstart += strlen(TMPL_T_COND);
-				} else {
-					cur->type = TMPL_EL_ELSE;
-				}
-
-			} else if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
-				tagstart += strlen(TMPL_T_ELSE);
-				if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
-					cur->type = TMPL_EL_COND;
-					tagstart += strlen(TMPL_T_COND);
-				} else {
-					cur->type = TMPL_EL_ELSE;
-				}
-
 			} else {
-				cur->type = TMPL_EL_SUBST;
+				PARSER_ADVANCE_PAST_TAG();
+				if (!enclosure) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Ignoring orphan else-tag at top level");
+					continue;
+				}
+				cur->type = TMPL_EL_ELSE;
+				PARSER_RECURSE();
+				PARSER_RETURN();
 			}
-			cur->data.var.len = tagend-tagstart;
-			cur->data.var.name = emalloc(cur->data.var.len+1);
-			memset(cur->data.var.name, 0, cur->data.var.len+1);
-			strncpy(cur->data.var.name, tagstart, cur->data.var.len);
-			curpos = tagend + strlen(TMPL_T_POST);
 
-			if (TMPL_EL_HAS_CONTENT_ITEM(cur)) {
-				// XXX: need number of chars parsed so we can advance
-				cur->content_item = _tmpl_parse(&curpos, depth+1, cur->type TSRMLS_CC);
-			}
+		} else {
+			cur->type = TMPL_EL_SUBST;
+		}
+		PARSER_CAPTURE_TAG_CONTENT(cur->data.var.name, cur->data.var.len);
+		PARSER_ADVANCE_PAST_TAG();
+
+		if (TMPL_EL_HAS_CONTENT_ITEM(cur)) {
+			PARSER_RECURSE();
 		}
 	} while (*curpos);
 
-	*tmpl = curpos;
-	return root;
+	PARSER_RETURN();
 }
 
 php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC) {
-	char * const tmp = tmpl;
-	return _tmpl_parse(&tmp, 0, 0 TSRMLS_CC);
+	char const * tmp = tmpl;
+	return _tmpl_parse(&tmp, NULL TSRMLS_CC);
 }
 
 char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
@@ -257,7 +268,7 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			if (tmpl->next_cond) {
 				// if we have a next condition, then the final next_condition's
 				// next will carry us on properly
-				php_printf("%sELSE...\n", ind);
+				if (tmpl->next_cond->type != TMPL_EL_ELSE) php_printf("%sELSE...\n", ind);
 				_tmpl_dump(tmpl->next_cond, ind_lvl);
 				return;
 			}
