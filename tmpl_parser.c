@@ -304,6 +304,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 		final_out = estrdup("");
 	}
 	smart_str_free(out);
+	efree(out);
 	return final_out;
 }
 
@@ -333,8 +334,8 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 				// if we have a next condition, then the final next_condition's
 				// next will carry us on properly
 				if (tmpl->next_cond->type != TMPL_EL_ELSE) php_printf("%sELSE...\n", ind);
-				_tmpl_dump(tmpl->next_cond, ind_lvl);
-				//return;
+				efree(ind);
+				return;
 			}
 			break;
 		case TMPL_EL_COND_EXPR:
@@ -367,6 +368,7 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			break;
 	}
 	if(tmpl->next) _tmpl_dump(tmpl->next, ind_lvl);
+	efree(ind);
 }
 
 void tmpl_dump(php_tt_tmpl_el *tmpl) {
@@ -387,9 +389,16 @@ void tmpl_free(php_tt_tmpl_el *tmpl) {
 		if (TMPL_EL_HAS_EXPR(tmpl) )
 			tmpl_expr_free(tmpl->data.expr);
 
-		next = tmpl->next;
-		efree(tmpl);
-		tmpl = next;
+		if (tmpl->next_cond) {
+			// the last next_cond's "next" is equal to the first, so need to
+			// make sure we don't try to free twice!
+			efree(tmpl);
+			tmpl = NULL;
+		} else {
+			next = tmpl->next;
+			efree(tmpl);
+			tmpl = next;
+		}
 	}
 }
 
