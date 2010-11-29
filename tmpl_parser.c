@@ -189,10 +189,10 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 				tagstart += strlen(TMPL_T_END);
 				if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
 					if (!TMPL_EL_IS_COND_EX(enclosure))
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Expecting to end conditional but found end-loop");
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Found end-conditional when expecting to end a loop");
 				} else if (!strncmp(tagstart, TMPL_T_LOOP, strlen(TMPL_T_LOOP))) {
 					if (!TMPL_EL_IS_LOOP_EX(enclosure))
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Expecting to end loop but found end-conditional");
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Found end-loop when expecting to end a conditional");
 				} else {
 					int len;
 					char *content;
