@@ -471,6 +471,7 @@ void tmpl_dump(php_tt_tmpl_el *tmpl) {
 }
 
 void tmpl_free(php_tt_tmpl_el *tmpl) {
+	return;
 	php_tt_tmpl_el *next = NULL;
 	while (tmpl) {
 		if (tmpl->content_item)
