@@ -78,7 +78,7 @@ char *tmpl_parse_until_tag(char const * const tmpl) {
 
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
 
-#if 1
+#if 0
 #define PARSER_DEBUG(m) php_printf(m "\n");
 #define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__);
 #else
