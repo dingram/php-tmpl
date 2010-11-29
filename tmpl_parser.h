@@ -103,8 +103,8 @@ typedef struct php_tt_tmpl_el_t {
 char *tmpl_parse_get_first_tag(char const * const tmpl);
 char *tmpl_parse_skip_tag(char const * const tmpl);
 char *tmpl_parse_until_tag(char const * const tmpl);
-php_tt_tmpl_el *tmpl_parse(char const * const tmpl);
-char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars);
+php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC);
+char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC);
 void tmpl_dump(php_tt_tmpl_el *tmpl);
 void tmpl_free(php_tt_tmpl_el *tmpl);
 

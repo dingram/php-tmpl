@@ -382,7 +382,7 @@ PHP_METHOD(tt, compile)
 		tto->tmpl = NULL;
 	}
 
-	tto->tmpl = tmpl_parse(template);
+	tto->tmpl = tmpl_parse(template TSRMLS_CC);
 
 	if (tto->tmpl) {
 		RETURN_TRUE;
@@ -416,7 +416,7 @@ PHP_METHOD(tt, render)
 
 	// TODO: merge overrides with existing vars
 
-	rendered = tmpl_use(tto->tmpl, overrides);
+	rendered = tmpl_use(tto->tmpl, overrides TSRMLS_CC);
 
 	RETURN_STRING(rendered, 0);
 }
@@ -651,9 +651,9 @@ PHP_FUNCTION(tmpl_parse)
 		return;
 	}
 
-	tmpl = tmpl_parse(template);
+	tmpl = tmpl_parse(template TSRMLS_CC);
 	tmpl_dump(tmpl);
-	char *tmp = tmpl_use(tmpl, NULL);
+	char *tmp = tmpl_use(tmpl, NULL TSRMLS_CC);
 	php_printf("Result: \"%s\"\n", tmp);
 	efree(tmp);
 	tmpl_free(tmpl);

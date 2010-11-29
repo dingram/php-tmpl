@@ -78,7 +78,7 @@ char *tmpl_parse_until_tag(char const * const tmpl) {
 
 #define TMPL_CREATE_EL(x) do {(x)=emalloc(sizeof(php_tt_tmpl_el));memset((x),0,sizeof(php_tt_tmpl_el));} while (0)
 
-static php_tt_tmpl_el *_tmpl_parse(char ** const tmpl, int depth, int enclosure) {
+static php_tt_tmpl_el *_tmpl_parse(char ** const tmpl, int depth, int enclosure TSRMLS_DC) {
 	php_tt_tmpl_el *root, *cur, *prev;
 	char const *tagstart;
 	char const *tagend;
@@ -177,7 +177,7 @@ static php_tt_tmpl_el *_tmpl_parse(char ** const tmpl, int depth, int enclosure)
 
 			if (TMPL_EL_HAS_CONTENT_ITEM(cur)) {
 				// XXX: need number of chars parsed so we can advance
-				cur->content_item = _tmpl_parse(&curpos, depth+1, cur->type);
+				cur->content_item = _tmpl_parse(&curpos, depth+1, cur->type TSRMLS_CC);
 			}
 		}
 	} while (*curpos);
@@ -186,12 +186,12 @@ static php_tt_tmpl_el *_tmpl_parse(char ** const tmpl, int depth, int enclosure)
 	return root;
 }
 
-php_tt_tmpl_el *tmpl_parse(char const * const tmpl) {
+php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC) {
 	char * const tmp = tmpl;
-	return _tmpl_parse(&tmp, 0, 0);
+	return _tmpl_parse(&tmp, 0, 0 TSRMLS_CC);
 }
 
-char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars) {
+char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	php_tt_tmpl_el *cur;
 	smart_str *out = NULL;
 	char *final_out;
