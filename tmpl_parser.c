@@ -285,7 +285,7 @@ php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC) {
 	return _tmpl_postprocess(_tmpl_parse(&tmp, NULL TSRMLS_CC));
 }
 
-int _tmpl_truthy(char *str) {
+int _tmpl_truthy_str(char *str) {
 	return !(
 			!strncasecmp(str, "",      0) ||
 			!strncasecmp(str, "0",     0) ||
