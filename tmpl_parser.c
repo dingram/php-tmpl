@@ -281,10 +281,66 @@ php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC) {
 	return _tmpl_postprocess(_tmpl_parse(&tmp, NULL TSRMLS_CC));
 }
 
+int _tmpl_truthy(char *str) {
+	return !(
+			!strncasecmp(str, "",      0) ||
+			!strncasecmp(str, "0",     0) ||
+			!strncasecmp(str, "no",    0) ||
+			!strncasecmp(str, "off",   0) ||
+			!strncasecmp(str, "false", 0)
+		   );
+}
+
+int _tmpl_eval_cond(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
+	zval **dest_entry = NULL;
+	char *var = tmpl->data.var.name;
+	int varlen = tmpl->data.var.len;
+	int invert = 0;
+	int retval = 0;
+	if (tmpl->type == TMPL_EL_ELSE) {
+		// always counts as "true"
+		return 1;
+	}
+	if (!var) {
+		return 0;
+	}
+	if (*var == '!') {
+		invert = 1;
+		++var;
+		--varlen;
+	}
+	if (vars && zend_hash_find(vars, var, varlen+1, (void**)&dest_entry)==SUCCESS) {
+		switch (Z_TYPE_PP(dest_entry))
+		{
+			case IS_NULL:
+				retval = 0;
+				break;
+			case IS_BOOL:
+				retval = Z_BVAL_PP(dest_entry);
+				break;
+			case IS_LONG:
+				retval = Z_LVAL_PP(dest_entry) != 0;
+				break;
+			case IS_DOUBLE:
+				retval = Z_DVAL_PP(dest_entry) != 0;
+				break;
+			case IS_STRING:
+				retval = _tmpl_truthy_str(Z_STRVAL_PP(dest_entry));
+				break;
+			default:
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Type of replacement \"%s\" is unsupported, assuming false", var);
+				retval = 0;
+				break;
+		}
+	}
+	return invert ? !retval : retval;
+}
+
 char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
-	php_tt_tmpl_el *cur;
+	php_tt_tmpl_el *cur = NULL;
+	php_tt_tmpl_el *cond = NULL;
 	smart_str *out = NULL;
-	char *final_out;
+	char *final_out = NULL;
 	zval **dest_entry = NULL;
 
 	out = emalloc(sizeof(smart_str));
@@ -309,6 +365,24 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					smart_str_appends(out, cur->data.var.name);
 					smart_str_appends(out, TMPL_T_POST);
 				}
+				break;
+
+			case TMPL_EL_COND:
+				cond = cur;
+
+				while (cond) {
+					if (_tmpl_eval_cond(cond, vars TSRMLS_CC)) {
+						if (cond->content_item)
+							smart_str_appends(out, tmpl_use(cond->content_item, vars TSRMLS_CC));
+						break;
+					}
+					if (!cond->next_cond) break;
+					cond = cond->next_cond;
+				}
+				while (cond->next_cond) {
+					cond = cond->next_cond;
+				}
+				cur = cond;
 				break;
 		}
 	}
