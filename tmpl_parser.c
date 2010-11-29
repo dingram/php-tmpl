@@ -198,7 +198,10 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, php_tt_tmpl_el *enclosure
 					char *content;
 					PARSER_CAPTURE_TAG_CONTENT(content, len);
 
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Tried to end unknown section type \"%s\"", content);
+					if (len)
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Tried to end unknown section type \"%s\"", content);
+					else
+						php_error_docref(NULL TSRMLS_CC, E_STRICT, "Generic end-section tag is discouraged; use either end-conditional or end-loop", content);
 					efree(content);
 				}
 				PARSER_DROP_LAST_ELEMENT();
