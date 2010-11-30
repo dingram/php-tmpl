@@ -30,6 +30,14 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_smart_str.h"
 #include "tmpl_parser.h"
+#include "zend_hash.h"
+#include "zend_interfaces.h"
+#if HAVE_SPL
+#include "ext/spl/spl_array.h"
+#include "ext/spl/spl_engine.h"
+#include "ext/spl/spl_exceptions.h"
+#include "ext/spl/spl_iterators.h"
+#endif
 
 extern zend_module_entry tmpl_module_entry;
 #define phpext_tmpl_ptr &tmpl_module_entry
@@ -78,6 +86,7 @@ typedef struct {
 	void ***thread_ctx;
 	zval *this_ptr;
 	php_tt_tmpl_el *tmpl;
+	HashTable *tmpl_vars;
 } php_tt_object;
 
 #define FREE_ARGS_HASH(a)	\

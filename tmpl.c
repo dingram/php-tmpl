@@ -69,6 +69,11 @@ static void tt_object_free_storage(void *obj TSRMLS_DC) /* {{{ */
 #endif
 
 	if (tto->tmpl) tmpl_free(tto->tmpl);
+	if (tto->tmpl_vars) {
+		zend_hash_destroy(tto->tmpl_vars);
+		FREE_HASHTABLE(tto->tmpl_vars);
+	}
+
 	efree(obj);
 }
 /* }}} */
@@ -101,6 +106,9 @@ static php_tt_object* php_tt_object_new(zend_class_entry *ce TSRMLS_DC) /* {{{ *
 	object_properties_init(&nos->zo, ce);
 #endif
 #endif
+
+	ALLOC_HASHTABLE(nos->tmpl_vars);
+	zend_hash_init(nos->tmpl_vars, 0, NULL, ZVAL_PTR_DTOR, 0);
 
 	return nos;
 }
@@ -166,6 +174,11 @@ PHP_METHOD(tt, __destruct)
 
 	if (tto->tmpl)
 		tmpl_free(tto->tmpl);
+
+	if (tto->tmpl_vars) {
+		zend_hash_destroy(tto->tmpl_vars);
+		FREE_HASHTABLE(tto->tmpl_vars);
+	}
 
 	tmpl_prop_hash_dtor(tto TSRMLS_CC);
 }
@@ -402,11 +415,11 @@ PHP_METHOD(tt, render)
 	zval *obj;
 	php_tt_object *tto;
 
-	obj = getThis();
-
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|a", &vars) == FAILURE) {
 		return;
 	}
+
+	obj = getThis();
 
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
@@ -422,6 +435,110 @@ PHP_METHOD(tt, render)
 }
 /* }}} */
 
+/* {{{ proto int Phar::offsetExists(string entry)
+ */
+PHP_METHOD(tt, offsetExists)
+{
+	char *entry = NULL;
+	int elen = 0;
+	zval *obj;
+	php_tt_object *tto;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &entry, &elen) == FAILURE) {
+		return;
+	}
+
+	obj = getThis();
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	if (zend_hash_exists(tto->tmpl_vars, entry, elen)) {
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
+}
+
+/* {{{ proto int Phar::offsetGet(string entry)
+ */
+PHP_METHOD(tt, offsetGet)
+{
+	char *entry = NULL;
+	int elen = 0;
+	zval *obj;
+	php_tt_object *tto;
+	zval **tmp;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &entry, &elen) == FAILURE) {
+		return;
+	}
+
+	obj = getThis();
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	if (SUCCESS == zend_hash_find(tto->tmpl_vars, entry, elen, (void **)&tmp)) {
+		RETURN_ZVAL(*tmp, 1, 0);
+	} else {
+		RETURN_NULL();
+	}
+}
+
+/* {{{ proto int Phar::offsetSet(string entry, string value)
+ */
+PHP_METHOD(tt, offsetSet)
+{
+	char *entry = NULL;
+	int elen = 0;
+	zval *value = NULL;
+	zval *obj;
+	php_tt_object *tto;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sz", &entry, &elen, &value) == FAILURE) {
+		return;
+	}
+
+	obj = getThis();
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	zend_hash_update(tto->tmpl_vars, entry, elen, (void *)&value, sizeof(zval *), NULL);
+}
+
+/* {{{ proto int Phar::offsetUnset(string entry)
+ */
+PHP_METHOD(tt, offsetUnset)
+{
+	char *entry = NULL;
+	int elen = 0;
+	zval *obj;
+	php_tt_object *tto;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &entry, &elen) == FAILURE) {
+		return;
+	}
+
+	obj = getThis();
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	if (zend_hash_exists(tto->tmpl_vars, entry, elen)) {
+		zend_hash_del(tto->tmpl_vars, entry, elen);
+	}
+}
+
+/* {{{ proto int Phar::count(void)
+ */
+PHP_METHOD(tt, count)
+{
+	zval *obj;
+	php_tt_object *tto;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+		return;
+	}
+
+	obj = getThis();
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	RETURN_LONG(zend_hash_num_elements(tto->tmpl_vars));
+}
 
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_noparams, 0, 0, 0)
@@ -464,6 +581,15 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_render, 0, 0, 0)
 	ZEND_ARG_INFO(0, overrides)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_offsetExists, 0, 0, 1)
+	ZEND_ARG_INFO(0, entry)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_offsetSet, 0, 0, 2)
+	ZEND_ARG_INFO(0, entry)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
 
 static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
@@ -474,10 +600,17 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, tokenizeConditionalEnd,	arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoop,			arginfo_tmpl_tokenize_loop,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopRange,		arginfo_tmpl_tokenize_loop_range,	ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams, 				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	//PHP_ME(tt, get,						arginfo_tmpl_get,					ZEND_ACC_PUBLIC)
 	//PHP_ME(tt, set,						arginfo_tmpl_set,					ZEND_ACC_PUBLIC)
+#if HAVE_SPL
+	PHP_ME(tt, offsetExists,			arginfo_tmpl_offsetExists,			ZEND_ACC_PUBLIC)
+	PHP_ME(tt, offsetGet,				arginfo_tmpl_offsetExists,			ZEND_ACC_PUBLIC)
+	PHP_ME(tt, offsetSet,				arginfo_tmpl_offsetSet,				ZEND_ACC_PUBLIC)
+	PHP_ME(tt, offsetUnset,				arginfo_tmpl_offsetExists,			ZEND_ACC_PUBLIC)
+	PHP_ME(tt, count,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
+#endif
 	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, render,					arginfo_tmpl_render,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	//PHP_ME(tt, process,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
@@ -526,6 +659,10 @@ PHP_MINIT_FUNCTION(tmpl)
 
 	tto_class_entry = zend_register_internal_class(&ttce TSRMLS_CC);
 	memcpy(&tt_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+
+#if HAVE_SPL
+	zend_class_implements(tto_class_entry TSRMLS_CC, 2, spl_ce_Countable, zend_ce_arrayaccess);
+#endif
 
 	tt_object_handlers.read_property = tmpl_read_member;
 	tt_object_handlers.write_property = tmpl_write_member;
