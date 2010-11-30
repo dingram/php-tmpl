@@ -435,7 +435,7 @@ PHP_METHOD(tt, render)
 }
 /* }}} */
 
-/* {{{ proto int Phar::offsetExists(string entry)
+/* {{{ proto int TextTemplate::offsetExists(string entry)
  */
 PHP_METHOD(tt, offsetExists)
 {
@@ -458,7 +458,7 @@ PHP_METHOD(tt, offsetExists)
 	}
 }
 
-/* {{{ proto int Phar::offsetGet(string entry)
+/* {{{ proto int TextTemplate::offsetGet(string entry)
  */
 PHP_METHOD(tt, offsetGet)
 {
@@ -476,13 +476,14 @@ PHP_METHOD(tt, offsetGet)
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
 	if (SUCCESS == zend_hash_find(tto->tmpl_vars, entry, elen, (void **)&tmp)) {
+		// TODO: this returns the key rather than the data?!
 		RETURN_ZVAL(*tmp, 1, 0);
 	} else {
 		RETURN_NULL();
 	}
 }
 
-/* {{{ proto int Phar::offsetSet(string entry, string value)
+/* {{{ proto int TextTemplate::offsetSet(string entry, string value)
  */
 PHP_METHOD(tt, offsetSet)
 {
@@ -502,7 +503,7 @@ PHP_METHOD(tt, offsetSet)
 	zend_hash_update(tto->tmpl_vars, entry, elen, (void *)&value, sizeof(zval *), NULL);
 }
 
-/* {{{ proto int Phar::offsetUnset(string entry)
+/* {{{ proto int TextTemplate::offsetUnset(string entry)
  */
 PHP_METHOD(tt, offsetUnset)
 {
@@ -523,7 +524,7 @@ PHP_METHOD(tt, offsetUnset)
 	}
 }
 
-/* {{{ proto int Phar::count(void)
+/* {{{ proto int TextTemplate::count(void)
  */
 PHP_METHOD(tt, count)
 {
@@ -613,7 +614,6 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 #endif
 	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, render,					arginfo_tmpl_render,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
-	//PHP_ME(tt, process,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
