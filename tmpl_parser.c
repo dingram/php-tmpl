@@ -271,8 +271,10 @@ php_tt_tmpl_el *_tmpl_postprocess(php_tt_tmpl_el *tmpl) {
 		while (tmp) {
 			if (tmp->content_item) tmp->content_item = _tmpl_postprocess(tmp->content_item);
 			if (!tmp->next_cond) {
-				tmp->next = tmpl->next;
-				++(tmp->next->refcount);
+				if (tmpl->next) {
+					tmp->next = tmpl->next;
+					++(tmp->next->refcount);
+				}
 			}
 			tmp = tmp->next_cond;
 		}
