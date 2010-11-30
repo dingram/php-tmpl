@@ -412,13 +412,12 @@ PHP_METHOD(tt, compile)
    Render a template */
 PHP_METHOD(tt, render)
 {
-	zval *vars = NULL;
-	HashTable *overrides = NULL;
-	char *rendered;
-	zval *obj;
+	zval *overrides = NULL, *obj = NULL, *tmp = NULL;
 	php_tt_object *tto;
+	HashTable *all_vars;
+	char *rendered;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|a", &vars) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|a", &overrides) == FAILURE) {
 		return;
 	}
 
@@ -426,13 +425,18 @@ PHP_METHOD(tt, render)
 
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
-	if (vars) {
-		overrides = HASH_OF(vars);
+	ALLOC_HASHTABLE(all_vars);
+	zend_hash_init(all_vars, 0, NULL, ZVAL_PTR_DTOR, 0);
+	zend_hash_copy(all_vars, tto->tmpl_vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp, sizeof(zval *));
+
+	if (overrides) {
+		php_array_merge(all_vars, HASH_OF(overrides), 0 TSRMLS_CC);
 	}
 
-	// TODO: merge overrides with existing vars
+	rendered = tmpl_use(tto->tmpl, all_vars TSRMLS_CC);
 
-	rendered = tmpl_use(tto->tmpl, overrides TSRMLS_CC);
+	zend_hash_destroy(all_vars);
+	FREE_HASHTABLE(all_vars);
 
 	RETURN_STRING(rendered, 0);
 }
