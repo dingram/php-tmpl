@@ -461,6 +461,34 @@ PHP_METHOD(tt, offsetExists)
 	}
 }
 
+/* {{{ proto int TextTemplate::getAll(void)
+ */
+PHP_METHOD(tt, getAll)
+{
+	char *entry = NULL;
+	int elen = 0;
+	zval *obj;
+	php_tt_object *tto;
+	zval *ret, *tmp;
+	HashTable *ret_ht;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "", &entry, &elen) == FAILURE) {
+		return;
+	}
+
+	obj = getThis();
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	ALLOC_HASHTABLE(ret_ht);
+	zend_hash_init(ret_ht, 0, NULL, ZVAL_PTR_DTOR, 0);
+	ALLOC_INIT_ZVAL(ret);
+	Z_TYPE_P(ret) = IS_ARRAY;
+	zend_hash_copy(ret_ht, tto->tmpl_vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp, sizeof(zval *));
+	Z_ARRVAL_P(ret) = ret_ht;
+
+	RETURN_ZVAL(ret, 1, 1);
+}
+
 /* {{{ proto int TextTemplate::get(string entry)
  */
 PHP_METHOD(tt, get)
@@ -645,6 +673,7 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, get,						arginfo_tmpl_get,					ZEND_ACC_PUBLIC)
+	PHP_ME(tt, getAll,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	PHP_ME(tt, set,						arginfo_tmpl_set,					ZEND_ACC_PUBLIC)
 #if HAVE_SPL
 	PHP_ME(    tt, offsetExists,			arginfo_tmpl_offsetExists,			ZEND_ACC_PUBLIC)
