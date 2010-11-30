@@ -451,7 +451,7 @@ PHP_METHOD(tt, offsetExists)
 	obj = getThis();
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
-	if (zend_hash_exists(tto->tmpl_vars, entry, elen)) {
+	if (zend_symtable_exists(tto->tmpl_vars, entry, elen+1)) {
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
@@ -475,7 +475,7 @@ PHP_METHOD(tt, get)
 	obj = getThis();
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
-	if (SUCCESS == zend_hash_find(tto->tmpl_vars, entry, elen, (void **)&tmp)) {
+	if (SUCCESS == zend_symtable_find(tto->tmpl_vars, entry, elen+1, (void **)&tmp)) {
 		// TODO: this returns the key rather than the data?!
 		RETURN_ZVAL(*tmp, 1, 0);
 	} else {
@@ -509,9 +509,9 @@ PHP_METHOD(tt, set)
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
 	if (entry && elen && value) {
-		zend_hash_update(tto->tmpl_vars, entry, elen, (void *)&value, sizeof(zval *), NULL);
+		Z_ADDREF_P(value);
+		zend_symtable_update(tto->tmpl_vars, entry, elen+1, (void **)&value, sizeof(zval *), NULL);
 	} else if (entries) {
-		// TODO: this doesn't work
 		php_array_merge(tto->tmpl_vars, HASH_OF(entries), 1 TSRMLS_CC);
 	}
 }
@@ -533,7 +533,8 @@ PHP_METHOD(tt, offsetSet)
 	obj = getThis();
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
-	zend_hash_update(tto->tmpl_vars, entry, elen, (void *)&value, sizeof(zval *), NULL);
+	Z_ADDREF_P(value);
+	zend_symtable_update(tto->tmpl_vars, entry, elen+1, (void **)&value, sizeof(zval *), NULL);
 }
 
 /* {{{ proto int TextTemplate::offsetUnset(string entry)
@@ -543,6 +544,7 @@ PHP_METHOD(tt, offsetUnset)
 	char *entry = NULL;
 	int elen = 0;
 	zval *obj;
+	zval *tmp;
 	php_tt_object *tto;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &entry, &elen) == FAILURE) {
@@ -552,8 +554,11 @@ PHP_METHOD(tt, offsetUnset)
 	obj = getThis();
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
-	if (zend_hash_exists(tto->tmpl_vars, entry, elen)) {
-		zend_hash_del(tto->tmpl_vars, entry, elen);
+	if (zend_symtable_exists(tto->tmpl_vars, entry, elen+1)) {
+		if (SUCCESS == zend_symtable_find(tto->tmpl_vars, entry, elen+1, (void **)&tmp)) {
+			zend_symtable_del(tto->tmpl_vars, entry, elen+1);
+			Z_DELREF_P(tmp);
+		}
 	}
 }
 

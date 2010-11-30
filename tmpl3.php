@@ -1,6 +1,5 @@
 <?php
 
-/*
 $t = new TextTemplate();
 
 var_dump(isset($t['tmp']));
@@ -20,9 +19,7 @@ var_dump(count($t));
 
 print "\n";
 
-*/
 
-/*
 $t = new TextTemplate();
 print "\n";
 
@@ -42,7 +39,6 @@ var_dump(isset($t['tmp']));
 var_dump(count($t));
 
 print "\n";
-*/
 
 $t = new TextTemplate();
 print "\n";
