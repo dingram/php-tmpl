@@ -97,6 +97,7 @@ typedef struct php_tt_tmpl_el_t {
 	struct php_tt_tmpl_el_t *next_cond;
 	// XXX: NULL if no content or this is a text-type node rather than an action
 	struct php_tt_tmpl_el_t *content_item;
+	int refcount;
 } php_tt_tmpl_el;
 
 

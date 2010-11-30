@@ -46,7 +46,7 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 													} while (0)                               \
 
 #define PARSER_RECURSE() 							do{cur->content_item = _tmpl_parse(&curpos, strend-curpos, cur TSRMLS_CC);} while (0)
-#define PARSER_ADVANCE_PAST_TAG() 					do{curpos = tagend + strlen(TMPL_T_POST);} while (0)
+#define PARSER_ADVANCE_PAST_TAG() 					do{PARSER_DEBUGM("adv1: curpos=%p",curpos);curpos = tagend + strlen(TMPL_T_POST);PARSER_DEBUGM("adv2: curpos=%p",curpos);} while (0)
 #define PARSER_CUR_IS_COND() 						do{                                           \
 														enclosure->next_cond = cur;               \
 														if (cur==root) {                          \
@@ -55,9 +55,14 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 															prev->next = NULL;                    \
 														}                                         \
 													} while (0)
+#if 0
 #define PARSER_DROP_LAST_ELEMENT() 					do{                                       \
 														memset(cur,0,sizeof(php_tt_tmpl_el)); \
+														++(cur->refcount);                    \
 													} while (0)
+#else
+#define PARSER_DROP_LAST_ELEMENT()
+#endif
 #define PARSER_CAPTURE_TAG_CONTENT(content, len) 	do{                                      \
 														(len) = tagend - tagstart;           \
 														(content) = emalloc((len)+1);        \
@@ -265,7 +270,10 @@ php_tt_tmpl_el *_tmpl_postprocess(php_tt_tmpl_el *tmpl) {
 		php_tt_tmpl_el *tmp = tmpl->next_cond;
 		while (tmp) {
 			if (tmp->content_item) tmp->content_item = _tmpl_postprocess(tmp->content_item);
-			if (!tmp->next_cond) tmp->next = tmpl->next;
+			if (!tmp->next_cond) {
+				tmp->next = tmpl->next;
+				++(tmp->next->refcount);
+			}
 			tmp = tmp->next_cond;
 		}
 		if (tmpl->content_item) tmpl->content_item = _tmpl_postprocess(tmpl->content_item);
@@ -469,9 +477,9 @@ void tmpl_dump(php_tt_tmpl_el *tmpl) {
 }
 
 void tmpl_free(php_tt_tmpl_el *tmpl) {
-	return;
 	php_tt_tmpl_el *next = NULL;
 	while (tmpl) {
+		if (--(tmpl->refcount) > 0) continue;
 		if (tmpl->content_item)
 			tmpl_free(tmpl->content_item);
 		if (tmpl->next_cond)
