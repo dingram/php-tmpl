@@ -172,12 +172,15 @@ PHP_METHOD(tt, __destruct)
 		return;
 	}
 
-	if (tto->tmpl)
+	if (tto->tmpl) {
 		tmpl_free(tto->tmpl);
+		tto->tmpl = NULL;
+	}
 
 	if (tto->tmpl_vars) {
 		zend_hash_destroy(tto->tmpl_vars);
 		FREE_HASHTABLE(tto->tmpl_vars);
+		tto->tmpl_vars = NULL;
 	}
 
 	tmpl_prop_hash_dtor(tto TSRMLS_CC);

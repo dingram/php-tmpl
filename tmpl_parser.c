@@ -31,7 +31,7 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
 
-#if 1
+#if 0
 #define PARSER_DEBUG(m) php_printf(m "\n")
 #define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
 #else
@@ -46,7 +46,7 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 													} while (0)                               \
 
 #define PARSER_RECURSE() 							do{cur->content_item = _tmpl_parse(&curpos, strend-curpos, cur TSRMLS_CC);} while (0)
-#define PARSER_ADVANCE_PAST_TAG() 					do{PARSER_DEBUGM("adv1: curpos=%p",curpos);curpos = tagend + strlen(TMPL_T_POST);PARSER_DEBUGM("adv2: curpos=%p",curpos);} while (0)
+#define PARSER_ADVANCE_PAST_TAG() 					do{curpos = tagend + strlen(TMPL_T_POST);} while (0)
 #define PARSER_CUR_IS_COND() 						do{                                           \
 														enclosure->next_cond = cur;               \
 														if (cur==root) {                          \
@@ -55,7 +55,7 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 															prev->next = NULL;                    \
 														}                                         \
 													} while (0)
-#if 0
+#if 1
 #define PARSER_DROP_LAST_ELEMENT() 					do{                                       \
 														memset(cur,0,sizeof(php_tt_tmpl_el)); \
 														++(cur->refcount);                    \
@@ -250,9 +250,6 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 			PARSER_RECURSE();
 			PARSER_DEBUGM("<<< Recursion from IF %s done", cur->data.var.name);
 		}
-		PARSER_DEBUGM("curpos: %p", curpos);
-		PARSER_DEBUGM("curpos-1: %s", curpos-1);
-		PARSER_DEBUGM("curpos: %s", curpos);
 	} while (curpos<strend && *curpos);
 
 	// TODO: could it be that PARSER_ADVANCE_PAST_TAG() pushes curpos past its length?
