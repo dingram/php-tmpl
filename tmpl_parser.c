@@ -282,7 +282,11 @@ php_tt_tmpl_el *_tmpl_postprocess(php_tt_tmpl_el *tmpl) {
 
 php_tt_tmpl_el *tmpl_parse(char const * const tmpl TSRMLS_DC) {
 	char const * tmp = tmpl;
-	return _tmpl_postprocess(_tmpl_parse(&tmp, NULL TSRMLS_CC));
+	php_tt_tmpl_el *ret = _tmpl_parse(&tmp, NULL TSRMLS_CC);
+	//PARSER_DUMP(ret);
+	ret = _tmpl_postprocess(ret);
+	//PARSER_DUMP(ret);
+	return ret;
 }
 
 int _tmpl_truthy_str(char *str) {
