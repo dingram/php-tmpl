@@ -543,7 +543,7 @@ PHP_METHOD(tt, set)
 		Z_ADDREF_P(value);
 		zend_symtable_update(tto->tmpl_vars, entry, elen+1, (void **)&value, sizeof(zval *), NULL);
 	} else if (entries) {
-		php_array_merge(tto->tmpl_vars, HASH_OF(entries), 1 TSRMLS_CC);
+		php_array_merge(tto->tmpl_vars, HASH_OF(entries), 0 TSRMLS_CC);
 	}
 }
 
