@@ -31,9 +31,9 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
 
-#if 0
-#define PARSER_DEBUG(m) php_printf(m "\n");
-#define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__);
+#if 1
+#define PARSER_DEBUG(m) php_printf(m "\n")
+#define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
 #else
 #define PARSER_DEBUG(m)
 #define PARSER_DEBUGM(m, ...)
