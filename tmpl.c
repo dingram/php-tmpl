@@ -395,7 +395,7 @@ PHP_METHOD(tt, compile)
 		tto->tmpl = NULL;
 	}
 
-	tto->tmpl = tmpl_parse(template TSRMLS_CC);
+	tto->tmpl = tmpl_parse(template, template_len TSRMLS_CC);
 
 	if (tto->tmpl) {
 		RETURN_TRUE;
@@ -763,7 +763,7 @@ PHP_FUNCTION(tmpl_parse)
 		return;
 	}
 
-	tmpl = tmpl_parse(template TSRMLS_CC);
+	tmpl = tmpl_parse(template, template_len TSRMLS_CC);
 	tmpl_dump(tmpl);
 	char *tmp = tmpl_use(tmpl, NULL TSRMLS_CC);
 	php_printf("Result: \"%s\"\n", tmp);
