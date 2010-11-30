@@ -481,7 +481,10 @@ void tmpl_dump(php_tt_tmpl_el *tmpl) {
 void tmpl_free(php_tt_tmpl_el *tmpl) {
 	php_tt_tmpl_el *next = NULL;
 	while (tmpl) {
-		if (--(tmpl->refcount) > 0) continue;
+		if (--(tmpl->refcount) > 0) {
+			tmpl = tmpl->next;
+			continue;
+		}
 		if (tmpl->content_item)
 			tmpl_free(tmpl->content_item);
 		if (tmpl->next_cond)
