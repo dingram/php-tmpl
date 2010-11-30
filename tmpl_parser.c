@@ -29,53 +29,6 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 	return tmpl ? strstr(tmpl, TMPL_T_POST) : NULL;
 }
 
-/**
- * Returns a copy of the content of the first tag found in the argument
- * (stripped of begin/end delimiters), or NULL if no tags found.
- */
-char *tmpl_parse_get_first_tag(char const * const tmpl) {
-	char *tagstart = tmpl_parse_find_tag_open(tmpl);
-	char *tagend   = tmpl_parse_find_tag_close(tagstart);
-	if (!tagstart || !tagend) {
-		return NULL;
-	}
-	int tag_len = tagend-tagstart-(sizeof(TMPL_T_PRE)-1);
-	char *tag = emalloc(tag_len+1);
-	memset(tag, 0, tag_len+1);
-	strncpy(tag, tagstart+sizeof(TMPL_T_PRE)-1, tag_len);
-	return tag;
-}
-
-/**
- * Returns a pointer (not a copy!) to the part of the argument after the first
- * tag found, or NULL if there are no more tags.
- */
-char *tmpl_parse_skip_tag(char const * const tmpl) {
-	char *tagstart = tmpl_parse_find_tag_open(tmpl);
-	char *tagend   = tmpl_parse_find_tag_close(tagstart);
-	if (!tagstart || !tagend) {
-		return NULL;
-	}
-	return tagend+sizeof(TMPL_T_POST)-1;
-}
-
-/**
- * Returns a copy of the part of the argument before the first tag found, or
- * NULL if there are no tags
- */
-char *tmpl_parse_until_tag(char const * const tmpl) {
-	char *tagstart = tmpl_parse_find_tag_open(tmpl);
-	char *tagend   = tmpl_parse_find_tag_close(tagstart);
-	if (!tagstart || !tagend) {
-		return NULL;
-	}
-	int tag_pos = tagstart-tmpl;
-	char *frag = emalloc(tag_pos+1);
-	memset(frag, 0, tag_pos+1);
-	strncpy(frag, tmpl, tag_pos);
-	return frag;
-}
-
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
 
 #if 0
