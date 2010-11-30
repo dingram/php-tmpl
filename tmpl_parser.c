@@ -382,8 +382,11 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 
 				while (cond) {
 					if (_tmpl_eval_cond(cond, vars TSRMLS_CC)) {
-						if (cond->content_item)
-							smart_str_appends(out, tmpl_use(cond->content_item, vars TSRMLS_CC));
+						if (cond->content_item) {
+							char *tmp = tmpl_use(cond->content_item, vars TSRMLS_CC);
+							smart_str_appends(out, tmp);
+							efree(tmp);
+						}
 						break;
 					}
 					if (!cond->next_cond) break;
