@@ -360,19 +360,17 @@ int _tmpl_eval_cond(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	php_tt_tmpl_el *cur = NULL;
 	php_tt_tmpl_el *cond = NULL;
-	smart_str *out = NULL;
+	smart_str out = {0};
 	char *final_out = NULL;
 	zval **dest_entry = NULL;
 
-	out = emalloc(sizeof(smart_str));
-	memset(out, 0, sizeof(smart_str));
-	smart_str_0(out);
+	smart_str_0(&out);
 
 	for (cur = tmpl; cur; cur = cur->next) {
 		switch (cur->type) {
 			case TMPL_EL_CONTENT:
 				if (*(cur->data.content.data))
-					smart_str_appendl(out, cur->data.content.data, cur->data.content.len);
+					smart_str_appendl(&out, cur->data.content.data, cur->data.content.len);
 				break;
 
 			case TMPL_EL_SUBST:
@@ -414,9 +412,9 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					}
 					if (str) {
 						if (len) {
-							smart_str_appendl(out, str, len);
+							smart_str_appendl(&out, str, len);
 						} else {
-							smart_str_appends(out, str);
+							smart_str_appends(&out, str);
 						}
 						if (free_str) {
 							efree(str);
@@ -429,11 +427,11 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					if (!cur->data.var.dval) {
 						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not find a replacement for \"%s\"", cur->data.var.name);
 
-						smart_str_appends(out, TMPL_T_PRE);
-						smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
-						smart_str_appends(out, TMPL_T_POST);
+						smart_str_appends(&out, TMPL_T_PRE);
+						smart_str_appendl(&out, cur->data.var.name, cur->data.var.len);
+						smart_str_appends(&out, TMPL_T_POST);
 					} else {
-						smart_str_appendl(out, cur->data.var.dval, cur->data.var.dlen);
+						smart_str_appendl(&out, cur->data.var.dval, cur->data.var.dlen);
 					}
 				}
 				break;
@@ -445,7 +443,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					if (_tmpl_eval_cond(cond, vars TSRMLS_CC)) {
 						if (cond->content_item) {
 							char *tmp = tmpl_use(cond->content_item, vars TSRMLS_CC);
-							smart_str_appends(out, tmp);
+							smart_str_appends(&out, tmp);
 							efree(tmp);
 						}
 						break;
@@ -461,13 +459,12 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 		}
 	}
 
-	if (out->c) {
-		final_out = estrndup(out->c, out->len);
+	if (out.c) {
+		final_out = estrndup(out.c, out.len);
 	} else {
 		final_out = estrdup("");
 	}
-	smart_str_free(out);
-	efree(out);
+	smart_str_free(&out);
 	return final_out;
 }
 
