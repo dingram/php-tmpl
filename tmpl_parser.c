@@ -80,6 +80,24 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 														PARSER_DEBUG("\033[1;32m<<<\033[m "#x); \
 													} while (0)
 
+static int _tmpl_parse_int(const char **start, long *target) {
+	smart_str stmp = {0};
+	smart_str_0(&stmp);
+
+	if (**start && **start == '-')
+		smart_str_appendc(&stmp, *((*start)++));
+	while (**start && !(**start < '0' || **start > '9'))
+		smart_str_appendc(&stmp, *((*start)++));
+
+	if (stmp.len && ((*(stmp.c) != '-') || (*(stmp.c) == '-' && stmp.len>1))) {
+		*target = atoi(stmp.c);
+		smart_str_free(&stmp);
+		return 1;
+	}
+	smart_str_free(&stmp);
+	return 0;
+}
+
 static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *enclosure TSRMLS_DC) {
 	php_tt_tmpl_el *root=NULL, *cur=NULL, *prev=NULL;
 	char const *strstart;
@@ -231,6 +249,96 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 			PARSER_DEBUG("\t\tReturning...");
 			PARSER_RETURN();
 
+		} else if (!strncmp(tagstart, TMPL_T_LOOP, strlen(TMPL_T_LOOP))) {
+			PARSER_DEBUG("\tLoop");
+			tagstart += strlen(TMPL_T_LOOP);
+			if (!strncmp(tagstart, TMPL_T_ELSE, strlen(TMPL_T_ELSE))) {
+				PARSER_DEBUG("\t\tLoop-else");
+				cur->type = TMPL_EL_LOOP_ELSE;
+				PARSER_DEBUG("\t\tAttaching to next_cond");
+				PARSER_CUR_IS_COND();
+				PARSER_DEBUG("\t\tAdvancing past tag");
+				PARSER_ADVANCE_PAST_TAG();
+				PARSER_DEBUG(">>> Recursing from LOOP-ELSE");
+				PARSER_RECURSE();
+				PARSER_DEBUG("<<< Recursion from LOOP-ELSE done");
+				PARSER_DEBUG("\t\tReturning...");
+				PARSER_RETURN();
+			} else if (*tagstart == '(') {
+				// range, of the format '(' num [ ',' num ] '..' num ')'
+				PARSER_DEBUG("\tFor");
+				cur->type = TMPL_EL_LOOP_RANGE;
+
+				++tagstart;
+
+				// parse range begin
+				if (!_tmpl_parse_int(&tagstart, &(cur->data.range.begin))) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse loop start value");
+					memset(cur, 0, sizeof(php_tt_tmpl_el));
+					ADVANCE_PAST_TAG();
+					continue;
+				}
+				PARSER_DEBUGM("\t\tStart: %ld", cur->data.range.begin);
+				if (*tagstart == ',') {
+					// parse range next-val
+					++tagstart;
+					if (!_tmpl_parse_int(&tagstart, &(cur->data.range.step))) {
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse loop next value");
+						memset(cur, 0, sizeof(php_tt_tmpl_el));
+						ADVANCE_PAST_TAG();
+						continue;
+					}
+					cur->data.range.step -= cur->data.range.begin;
+					if (!cur->data.range.step)
+						cur->data.range.step = 1;
+					PARSER_DEBUGM("\t\tStep: %ld", cur->data.range.step);
+				} else if (*tagstart != '.') {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse loop range: next character must either be \".\" or \",\"");
+					memset(cur, 0, sizeof(php_tt_tmpl_el));
+					ADVANCE_PAST_TAG();
+					continue;
+				}
+
+				// default step size
+				if (!cur->data.range.step)
+					cur->data.range.step = 1;
+
+				// parse loop end value
+				if (*tagstart == '.' && *(tagstart+1) == '.') {
+					tagstart += 2;
+					if (!_tmpl_parse_int(&tagstart, &(cur->data.range.end))) {
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse loop end value");
+						memset(cur, 0, sizeof(php_tt_tmpl_el));
+						ADVANCE_PAST_TAG();
+						continue;
+					}
+					PARSER_DEBUGM("\t\tEnd: %ld", cur->data.range.end);
+				} else {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse loop range: next characters must be \"..\"");
+					memset(cur, 0, sizeof(php_tt_tmpl_el));
+					ADVANCE_PAST_TAG();
+					continue;
+				}
+
+				PARSER_DEBUGM("\t\tEnd of spec", cur->data.range.end);
+				// make sure the step is sensibly signed
+				if ((cur->data.range.begin < cur->data.range.end && cur->data.range.step < 0) || (cur->data.range.begin > cur->data.range.end && cur->data.range.step > 0)) {
+					cur->data.range.step *= -1;
+				}
+
+				if (*tagstart != ')' || tagstart + 1 > tagend) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse loop range: range spec must end with \")\"");
+					memset(cur, 0, sizeof(php_tt_tmpl_el));
+					ADVANCE_PAST_TAG();
+					continue;
+				}
+
+			} else {
+				// variable
+				PARSER_DEBUG("\tForeach");
+				cur->type = TMPL_EL_LOOP_VAR;
+			}
+
 		} else {
 			PARSER_DEBUG("\tSubstitution");
 			cur->type = TMPL_EL_SUBST;
@@ -255,13 +363,11 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 		PARSER_DEBUG("\t\tAdvanced past tag");
 
 		if (TMPL_EL_HAS_CONTENT_ITEM(cur)) {
-			PARSER_DEBUGM(">>> Recursing from IF %s", cur->data.var.name);
+			PARSER_DEBUGM(">>> Recursing", cur->data.var.name);
 			PARSER_RECURSE();
-			PARSER_DEBUGM("<<< Recursion from IF %s done", cur->data.var.name);
+			PARSER_DEBUGM("<<< Recursion done", cur->data.var.name);
 		}
 	} while (curpos<strend && *curpos);
-
-	// TODO: could it be that PARSER_ADVANCE_PAST_TAG() pushes curpos past its length?
 
 	PARSER_RETURN();
 }
@@ -292,9 +398,12 @@ php_tt_tmpl_el *_tmpl_postprocess(php_tt_tmpl_el *tmpl) {
 
 php_tt_tmpl_el *tmpl_parse(char const * const tmpl, int len TSRMLS_DC) {
 	char const * tmp = tmpl;
+	PARSER_DEBUG("Starting parse");
 	php_tt_tmpl_el *ret = _tmpl_parse(&tmp, len, NULL TSRMLS_CC);
+	PARSER_DEBUG("Parse complete");
 	//PARSER_DUMP(ret);
 	ret = _tmpl_postprocess(ret);
+	PARSER_DEBUG("Postprocess complete");
 	//PARSER_DUMP(ret);
 	return ret;
 }
@@ -367,6 +476,8 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	smart_str out = {0};
 	char *final_out = NULL;
 	zval **dest_entry = NULL;
+
+	PARSER_DEBUG("Starting render");
 
 	smart_str_0(&out);
 
@@ -469,6 +580,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 		final_out = estrdup("");
 	}
 	smart_str_free(&out);
+	PARSER_DEBUG("Render complete");
 	return final_out;
 }
 
@@ -596,15 +708,32 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			break;
 		case TMPL_EL_LOOP_RANGE:
 			/* Loop over range: data.range, content_item, next_cond */
-			php_printf("Unknown type code %d\n", tmpl->type);
+			php_printf("%sFOR item = %ld TO %ld STEP %ld:\n", ind, tmpl->data.range.begin, tmpl->data.range.end, tmpl->data.range.step);
+			_tmpl_dump(tmpl->content_item, ind_lvl+1);
+			if (tmpl->next_cond) {
+				// if we have a next condition, then the final next_condition's
+				// next will carry us on properly
+				_tmpl_dump(tmpl->next_cond, ind_lvl);
+				efree(ind);
+				return;
+			}
 			break;
 		case TMPL_EL_LOOP_VAR:
 			/* Loop over array var: data.var, content_item, next_cond */
-			php_printf("Unknown type code %d\n", tmpl->type);
+			php_printf("%sFOREACH: \"%s\"\n", ind, tmpl->data.var.name);
+			_tmpl_dump(tmpl->content_item, ind_lvl+1);
+			if (tmpl->next_cond) {
+				// if we have a next condition, then the final next_condition's
+				// next will carry us on properly
+				_tmpl_dump(tmpl->next_cond, ind_lvl);
+				efree(ind);
+				return;
+			}
 			break;
 		case TMPL_EL_LOOP_ELSE:
 			/* Loop "else": content_item */
-			php_printf("Unknown type code %d\n", tmpl->type);
+			php_printf("%sELSEIF no iterations:\n", ind);
+			_tmpl_dump(tmpl->content_item, ind_lvl+1);
 			break;
 		case TMPL_EL_ERROR:
 			/* Error message: data.content */
