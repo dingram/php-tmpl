@@ -235,18 +235,22 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 			PARSER_DEBUG("\tSubstitution");
 			cur->type = TMPL_EL_SUBST;
 		}
-		PARSER_CAPTURE_TAG_CONTENT(cur->data.var.name, cur->data.var.len);
-		if (cur->type == TMPL_EL_SUBST && (tmppos = strchr(cur->data.var.name, '|')) != NULL) {
-			*tmppos = '\0';
-			++tmppos;
-			cur->data.var.dval = estrdup(tmppos);
-			cur->data.var.dlen = strlen(cur->data.var.dval);
-			tmppos = cur->data.var.name;
-			cur->data.var.name = estrdup(tmppos);
-			cur->data.var.len = strlen(cur->data.var.name);
-			efree(tmppos);
+
+		// capture rest of tag
+		if (TMPL_EL_HAS_VAR(cur)) {
+			PARSER_CAPTURE_TAG_CONTENT(cur->data.var.name, cur->data.var.len);
+			if (cur->type == TMPL_EL_SUBST && (tmppos = strchr(cur->data.var.name, '|')) != NULL) {
+				*tmppos = '\0';
+				++tmppos;
+				cur->data.var.dval = estrdup(tmppos);
+				cur->data.var.dlen = strlen(cur->data.var.dval);
+				tmppos = cur->data.var.name;
+				cur->data.var.name = estrdup(tmppos);
+				cur->data.var.len = strlen(cur->data.var.name);
+				efree(tmppos);
+			}
+			PARSER_DEBUGM("\t\tTag content: \"%s\"", cur->data.var.name);
 		}
-		PARSER_DEBUGM("\t\tTag content: \"%s\"", cur->data.var.name);
 		PARSER_ADVANCE_PAST_TAG();
 		PARSER_DEBUG("\t\tAdvanced past tag");
 
