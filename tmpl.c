@@ -614,6 +614,26 @@ PHP_METHOD(tt, count)
 	RETURN_LONG(zend_hash_num_elements(tto->tmpl_vars));
 }
 
+/* {{{ proto string TextTemplate::__toString(void)
+   Return a string representation of the template */
+PHP_METHOD(tt, __toString)
+{
+	zval *obj;
+	php_tt_object *tto;
+	char *tmpl;
+
+	obj = getThis();
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "") == FAILURE) {
+		return;
+	}
+
+	tto = fetch_tt_object(obj TSRMLS_CC);
+
+	tmpl = tmpl_to_string(tto->tmpl);
+	RETURN_STRING(tmpl, 0);
+}
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tmpl_noparams, 0, 0, 0)
 ZEND_END_ARG_INFO()
@@ -688,6 +708,7 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 #endif
 	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, render,					arginfo_tmpl_render,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
+	PHP_ME(tt, __toString,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };

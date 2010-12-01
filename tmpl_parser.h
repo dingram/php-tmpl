@@ -105,6 +105,7 @@ typedef struct php_tt_tmpl_el_t {
 
 php_tt_tmpl_el *tmpl_parse(char const * const tmpl, int len TSRMLS_DC);
 char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC);
+char *tmpl_to_string(php_tt_tmpl_el *tmpl);
 void tmpl_dump(php_tt_tmpl_el *tmpl);
 void tmpl_free(php_tt_tmpl_el *tmpl);
 

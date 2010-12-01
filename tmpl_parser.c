@@ -468,6 +468,84 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	return final_out;
 }
 
+void _tmpl_to_string(php_tt_tmpl_el *tmpl, smart_str *out) {
+	php_tt_tmpl_el *cur = NULL;
+	php_tt_tmpl_el *cond = NULL;
+
+	for (cur = tmpl; cur; cur = cur->next) {
+		if (cur->type == TMPL_EL_CONTENT) {
+			// optimise for the simple case
+			if (*(cur->data.content.data))
+				smart_str_appendl(out, cur->data.content.data, cur->data.content.len);
+			continue;
+		}
+
+		smart_str_appends(out, TMPL_T_PRE);
+
+		switch (cur->type) {
+			case TMPL_EL_SUBST:
+				smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
+				if (cur->data.var.dval) {
+					smart_str_appends(out, TMPL_T_DEFAULT);
+					smart_str_appendl(out, cur->data.var.dval, cur->data.var.dlen);
+				}
+				break;
+			case TMPL_EL_ELSE:
+				smart_str_appends(out, TMPL_T_ELSE);
+				smart_str_appends(out, TMPL_T_POST);
+				_tmpl_to_string(cur->content_item, out);
+				smart_str_appends(out, TMPL_T_PRE);
+				smart_str_appends(out, TMPL_T_END);
+				smart_str_appends(out, TMPL_T_COND);
+				break;
+			case TMPL_EL_COND:
+				smart_str_appends(out, TMPL_T_COND);
+				smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
+				smart_str_appends(out, TMPL_T_POST);
+				_tmpl_to_string(cur->content_item, out);
+				while (cur->next_cond) {
+					cur = cur->next_cond;
+					if (cur->type == TMPL_EL_COND) {
+						smart_str_appends(out, TMPL_T_PRE);
+						smart_str_appends(out, TMPL_T_ELSE);
+						smart_str_appends(out, TMPL_T_COND);
+						smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
+						smart_str_appends(out, TMPL_T_POST);
+						_tmpl_to_string(cur->content_item, out);
+					} else if (cur->type == TMPL_EL_ELSE) {
+						smart_str_appends(out, TMPL_T_PRE);
+						smart_str_appends(out, TMPL_T_ELSE);
+						smart_str_appends(out, TMPL_T_POST);
+						_tmpl_to_string(cur->content_item, out);
+					} else {
+						php_printf("WTF, srsly\n");
+					}
+				}
+				smart_str_appends(out, TMPL_T_PRE);
+				smart_str_appends(out, TMPL_T_END);
+				smart_str_appends(out, TMPL_T_COND);
+		}
+		smart_str_appends(out, TMPL_T_POST);
+	}
+}
+
+char *tmpl_to_string(php_tt_tmpl_el *tmpl) {
+	smart_str out = {0};
+	char *final_out;
+
+	smart_str_0(&out);
+
+	_tmpl_to_string(tmpl, &out);
+
+	if (out.c) {
+		final_out = estrndup(out.c, out.len);
+	} else {
+		final_out = estrdup("");
+	}
+	smart_str_free(&out);
+	return final_out;
+}
+
 static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 	if (!tmpl) return;
 	char *ind = emalloc(ind_lvl+1);
