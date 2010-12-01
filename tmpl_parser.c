@@ -55,14 +55,6 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 															prev->next = NULL;                    \
 														}                                         \
 													} while (0)
-#if 1
-#define PARSER_DROP_LAST_ELEMENT() 					do{                                       \
-														memset(cur,0,sizeof(php_tt_tmpl_el)); \
-														++(cur->refcount);                    \
-													} while (0)
-#else
-#define PARSER_DROP_LAST_ELEMENT()
-#endif
 #define PARSER_CAPTURE_TAG_CONTENT(content, len) 	do{                                      \
 														(len) = tagend - tagstart;           \
 														(content) = emalloc((len)+1);        \
@@ -185,8 +177,6 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 						php_error_docref(NULL TSRMLS_CC, E_STRICT, "Generic end-section tag is discouraged; use either end-conditional or end-loop", content);
 					efree(content);
 				}
-				PARSER_DEBUG("\t\tDropping last element");
-				PARSER_DROP_LAST_ELEMENT();
 				PARSER_DEBUG("\t\tAdvancing past tag");
 				PARSER_ADVANCE_PAST_TAG();
 				PARSER_DEBUG("\t\tReturning");
