@@ -83,6 +83,8 @@ typedef struct php_tt_tmpl_el_t {
 		struct {
 			char *name;
 			long len;
+			char *dval;
+			long dlen;
 		} var;
 		php_tt_tmpl_expr *expr;
 		struct {

@@ -95,6 +95,7 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 	char const *tagstart;
 	char const *tagend;
 	char const *curpos;
+	char *tmppos;
 
 	if (!tmpl) {
 		return NULL;
@@ -241,6 +242,16 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 			cur->type = TMPL_EL_SUBST;
 		}
 		PARSER_CAPTURE_TAG_CONTENT(cur->data.var.name, cur->data.var.len);
+		if (cur->type == TMPL_EL_SUBST && (tmppos = strchr(cur->data.var.name, '|')) != NULL) {
+			*tmppos = '\0';
+			++tmppos;
+			cur->data.var.dval = estrdup(tmppos);
+			cur->data.var.dlen = strlen(cur->data.var.dval);
+			tmppos = cur->data.var.name;
+			cur->data.var.name = estrdup(tmppos);
+			cur->data.var.len = strlen(cur->data.var.name);
+			efree(tmppos);
+		}
 		PARSER_DEBUGM("\t\tTag content: \"%s\"", cur->data.var.name);
 		PARSER_ADVANCE_PAST_TAG();
 		PARSER_DEBUG("\t\tAdvanced past tag");
@@ -421,11 +432,15 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 						}
 					}
 				} else {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not find a replacement for \"%s\"", cur->data.var.name);
+					if (!cur->data.var.dval) {
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not find a replacement for \"%s\"", cur->data.var.name);
 
-					smart_str_appends(out, TMPL_T_PRE);
-					smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
-					smart_str_appends(out, TMPL_T_POST);
+						smart_str_appends(out, TMPL_T_PRE);
+						smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
+						smart_str_appends(out, TMPL_T_POST);
+					} else {
+						smart_str_appendl(out, cur->data.var.dval, cur->data.var.dlen);
+					}
 				}
 				break;
 
@@ -474,7 +489,11 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			break;
 		case TMPL_EL_SUBST:
 			/* Simple substitution: data.var */
-			php_printf("%sVALUE-OF: \"%s\"\n", ind, tmpl->data.var.name);
+			if (tmpl->data.var.dval) {
+				php_printf("%sVALUE-OF: \"%s\", default \"%s\"\n", ind, tmpl->data.var.name, tmpl->data.var.dval);
+			} else {
+				php_printf("%sVALUE-OF: \"%s\"\n", ind, tmpl->data.var.name);
+			}
 			break;
 		case TMPL_EL_SUBST_EXPR:
 			/* Expression substitution: data.expr */
@@ -545,8 +564,11 @@ void tmpl_free(php_tt_tmpl_el *tmpl) {
 			efree(tmpl->data.content.data);
 		if (TMPL_EL_HAS_VAR(tmpl) && tmpl->data.var.name)
 			efree(tmpl->data.var.name);
+		if (TMPL_EL_HAS_VAR(tmpl) && tmpl->data.var.dval)
+			efree(tmpl->data.var.dval);
 		if (TMPL_EL_HAS_EXPR(tmpl) )
 			tmpl_expr_free(tmpl->data.expr);
+		tmpl->type = 0;
 
 		if (tmpl->next_cond) {
 			// the last next_cond's "next" is equal to the first, so need to
