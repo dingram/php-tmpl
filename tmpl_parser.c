@@ -703,6 +703,7 @@ void _tmpl_to_string(php_tt_tmpl_el *tmpl, smart_str *out) {
 		}
 		smart_str_appends(out, TMPL_T_POST);
 	}
+	smart_str_0(out);
 }
 
 char *tmpl_to_string(php_tt_tmpl_el *tmpl) {
@@ -712,6 +713,8 @@ char *tmpl_to_string(php_tt_tmpl_el *tmpl) {
 	smart_str_0(&out);
 
 	_tmpl_to_string(tmpl, &out);
+
+	smart_str_0(&out);
 
 	if (out.c) {
 		final_out = estrndup(out.c, out.len);
