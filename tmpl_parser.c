@@ -183,6 +183,10 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
 				PARSER_RETURN();
 			}
 
+		} else if (!strncmp(tagstart, TMPL_T_COMMENT, strlen(TMPL_T_COMMENT))) {
+			PARSER_ADVANCE_PAST_TAG();
+			continue;
+
 		} else if (!strncmp(tagstart, TMPL_T_COND, strlen(TMPL_T_COND))) {
 			PARSER_DEBUG("\tConditional");
 			cur->type = TMPL_EL_COND;
