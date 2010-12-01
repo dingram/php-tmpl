@@ -4,6 +4,8 @@ require_once('TextTemplate2.php');
 
 define('TEST_ITERATIONS', 10000);
 
+error_reporting(E_ALL & ~E_STRICT);
+
 $t = new TextTemplate();
 $t2 = new TextTemplate2();
 
