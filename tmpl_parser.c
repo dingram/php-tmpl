@@ -476,6 +476,11 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	smart_str out = {0};
 	char *final_out = NULL;
 	zval **dest_entry = NULL;
+	zval *tmp_item = NULL;
+	int iterations = 0;
+	long i=0;
+	HashTable *tmp_vars;
+	smart_str iter_var_name = {0};
 
 	PARSER_DEBUG("Starting render");
 
@@ -570,6 +575,65 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					cond = cond->next_cond;
 				}
 				cur = cond;
+				break;
+
+			case TMPL_EL_LOOP_RANGE:
+
+				ALLOC_HASHTABLE(tmp_vars);
+				zend_hash_init(tmp_vars, 0, NULL, ZVAL_PTR_DTOR, 0);
+				zend_hash_copy(tmp_vars, vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp_item, sizeof(zval *));
+				tmp_item = NULL;
+				MAKE_STD_ZVAL(tmp_item);
+				Z_TYPE_P(tmp_item) = IS_LONG;
+				Z_LVAL_P(tmp_item) = 0;
+
+				smart_str_appendc(&iter_var_name, '$');
+				smart_str_0(&iter_var_name);
+
+				while (zend_hash_exists(vars, iter_var_name.c, iter_var_name.len+1)) {
+					smart_str_appendc(&iter_var_name, '$');
+					smart_str_0(&iter_var_name);
+				}
+
+				zend_hash_update(tmp_vars, iter_var_name.c, iter_var_name.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
+
+				if (cur->data.range.begin < cur->data.range.end) {
+					char *tmp;
+					for (i = cur->data.range.begin; i <= cur->data.range.end; i += cur->data.range.step) {
+						++iterations;
+						Z_LVAL_P(tmp_item) = i;
+						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
+						smart_str_appends(&out, tmp);
+						efree(tmp);
+					}
+				} else {
+					char *tmp;
+					// NOTE: step is negative in this case
+					for (i = cur->data.range.begin; i >= cur->data.range.end; i += cur->data.range.step) {
+						++iterations;
+						Z_LVAL_P(tmp_item) = i;
+						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
+						smart_str_appends(&out, tmp);
+						efree(tmp);
+					}
+				}
+
+				smart_str_free(&iter_var_name);
+
+				zend_hash_destroy(tmp_vars);
+				FREE_HASHTABLE(tmp_vars);
+
+				if (!iterations && cur->next_cond) {
+					char *tmp;
+					cur = cur->next_cond;
+					tmp = tmpl_use(cur->content_item, vars TSRMLS_CC);
+					smart_str_appends(&out, tmp);
+					efree(tmp);
+				}
+
+				while (cur->next_cond) {
+					cur = cur->next_cond;
+				}
 				break;
 		}
 	}
