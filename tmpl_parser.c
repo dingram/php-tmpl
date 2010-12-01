@@ -640,6 +640,66 @@ void _tmpl_to_string(php_tt_tmpl_el *tmpl, smart_str *out) {
 				smart_str_appends(out, TMPL_T_PRE);
 				smart_str_appends(out, TMPL_T_END);
 				smart_str_appends(out, TMPL_T_COND);
+				break;
+			case TMPL_EL_LOOP_VAR:
+				smart_str_appends(out, TMPL_T_LOOP);
+				smart_str_appendl(out, cur->data.var.name, cur->data.var.len);
+				smart_str_appends(out, TMPL_T_POST);
+				_tmpl_to_string(cur->content_item, out);
+				while (cur->next_cond) {
+					cur = cur->next_cond;
+					if (cur->type == TMPL_EL_LOOP_ELSE) {
+						smart_str_appends(out, TMPL_T_PRE);
+						smart_str_appends(out, TMPL_T_LOOP);
+						smart_str_appends(out, TMPL_T_ELSE);
+						smart_str_appends(out, TMPL_T_POST);
+						_tmpl_to_string(cur->content_item, out);
+					} else {
+						php_printf("WTF, srsly\n");
+					}
+				}
+				smart_str_appends(out, TMPL_T_PRE);
+				smart_str_appends(out, TMPL_T_END);
+				smart_str_appends(out, TMPL_T_LOOP);
+				break;
+			case TMPL_EL_LOOP_RANGE:
+				smart_str_appends(out, TMPL_T_LOOP);
+				smart_str_appendc(out, '(');
+				smart_str_append_long(out, cur->data.range.begin);
+				if (cur->data.range.step != 1 && cur->data.range.step != -1) {
+					smart_str_appendc(out, ',');
+					smart_str_append_long(out, cur->data.range.begin + cur->data.range.step);
+				}
+				smart_str_appendl(out, "..", sizeof("..")-1);
+				smart_str_append_long(out, cur->data.range.end);
+				smart_str_appendc(out, ')');
+				smart_str_appends(out, TMPL_T_POST);
+				_tmpl_to_string(cur->content_item, out);
+				while (cur->next_cond) {
+					cur = cur->next_cond;
+					if (cur->type == TMPL_EL_LOOP_ELSE) {
+						smart_str_appends(out, TMPL_T_PRE);
+						smart_str_appends(out, TMPL_T_LOOP);
+						smart_str_appends(out, TMPL_T_ELSE);
+						smart_str_appends(out, TMPL_T_POST);
+						_tmpl_to_string(cur->content_item, out);
+					} else {
+						php_printf("WTF, srsly\n");
+					}
+				}
+				smart_str_appends(out, TMPL_T_PRE);
+				smart_str_appends(out, TMPL_T_END);
+				smart_str_appends(out, TMPL_T_LOOP);
+				break;
+			case TMPL_EL_LOOP_ELSE:
+				smart_str_appends(out, TMPL_T_LOOP);
+				smart_str_appends(out, TMPL_T_ELSE);
+				smart_str_appends(out, TMPL_T_POST);
+				_tmpl_to_string(cur->content_item, out);
+				smart_str_appends(out, TMPL_T_PRE);
+				smart_str_appends(out, TMPL_T_END);
+				smart_str_appends(out, TMPL_T_LOOP);
+				break;
 		}
 		smart_str_appends(out, TMPL_T_POST);
 	}
