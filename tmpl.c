@@ -687,6 +687,9 @@ ZEND_END_ARG_INFO()
 
 static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, __construct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_CTOR)
+	PHP_ME(tt, __toString,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
+	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL|ZEND_ACC_DTOR)
+
 	PHP_ME(tt, tokenize,				arginfo_tmpl_tokenize,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeConditional,		arginfo_tmpl_tokenize_cond,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeElseIf,			arginfo_tmpl_tokenize_cond,			ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
@@ -696,6 +699,7 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 	PHP_ME(tt, tokenizeLoopRange,		arginfo_tmpl_tokenize_loop_range,	ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopElse,		arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, tokenizeLoopEnd,			arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+
 	PHP_ME(tt, get,						arginfo_tmpl_get,					ZEND_ACC_PUBLIC)
 	PHP_ME(tt, getAll,					arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
 	PHP_ME(tt, set,						arginfo_tmpl_set,					ZEND_ACC_PUBLIC)
@@ -708,8 +712,10 @@ static zend_function_entry tt_functions[] = { /* {{{ */
 #endif
 	PHP_ME(tt, compile,					arginfo_tmpl_compile,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	PHP_ME(tt, render,					arginfo_tmpl_render,				ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
-	PHP_ME(tt, __toString,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
-	PHP_ME(tt, __destruct,				arginfo_tmpl_noparams,				ZEND_ACC_PUBLIC)
+
+	PHP_MALIAS(tt, tokenizeIf,		tokenizeConditional,		arginfo_tmpl_offsetExists,		ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+	PHP_MALIAS(tt, tokenizeEndIf,	tokenizeConditionalEnd,		arginfo_tmpl_offsetExists,		ZEND_ACC_PUBLIC|ZEND_ACC_STATIC|ZEND_ACC_FINAL)
+
 	{NULL, NULL, NULL}
 };
 /* }}} */
