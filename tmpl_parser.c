@@ -470,6 +470,28 @@ int _tmpl_eval_cond(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	return invert ? !retval : retval;
 }
 
+#define TMPL_INIT_ITER_VAR()	do { \
+									ALLOC_HASHTABLE(tmp_vars); \
+									zend_hash_init(tmp_vars, 0, NULL, ZVAL_PTR_DTOR, 0); \
+									zend_hash_copy(tmp_vars, vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp_item, sizeof(zval *)); \
+									tmp_item = NULL; \
+									smart_str_free(&iter_var_name); \
+									 \
+									smart_str_appendc(&iter_var_name, '$'); \
+									smart_str_0(&iter_var_name); \
+									 \
+									while (zend_hash_exists(vars, iter_var_name.c, iter_var_name.len+1)) { \
+										smart_str_appendc(&iter_var_name, '$'); \
+										smart_str_0(&iter_var_name); \
+									} \
+								} while (0)
+
+#define TMPL_DESTROY_ITER_VAR()	do { \
+									smart_str_free(&iter_var_name); \
+									zend_hash_destroy(tmp_vars); \
+									FREE_HASHTABLE(tmp_vars); \
+								} while (0)
+
 char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	php_tt_tmpl_el *cur = NULL;
 	php_tt_tmpl_el *cond = NULL;
@@ -577,23 +599,104 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 				cur = cond;
 				break;
 
+			case TMPL_EL_LOOP_VAR:
+
+				TMPL_INIT_ITER_VAR();
+
+				iterations = 0;
+
+				if (vars && zend_hash_find(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS && Z_TYPE_PP(dest_entry) == IS_ARRAY) {
+					zval **cur_val;
+					char *key = NULL;
+					char *cur_key;
+					uint cur_key_len;
+					int hash_key_type;
+					ulong num_index;
+					HashPosition pos;
+					char *tmp;
+
+					smart_str skey;
+
+					smart_str_appendl(&skey, iter_var_name.c, iter_var_name.len);
+					smart_str_appendc(&skey, '@');
+					smart_str_0(&skey);
+
+					for (zend_hash_internal_pointer_reset_ex(HASH_OF(*dest_entry), &pos);
+							HASH_KEY_NON_EXISTANT != (hash_key_type = zend_hash_get_current_key_ex(HASH_OF(*dest_entry), &cur_key, &cur_key_len, &num_index, 0, &pos));
+							zend_hash_move_forward_ex(HASH_OF(*dest_entry), &pos)) {
+						zend_hash_get_current_data_ex(HASH_OF(*dest_entry), (void *)&cur_val, &pos);
+						smart_str s = {0};
+
+						switch (hash_key_type) {
+							case HASH_KEY_IS_STRING:
+								key = cur_key;
+								break;
+							case HASH_KEY_IS_LONG:
+								smart_str_append_unsigned(&s, num_index);
+								smart_str_0(&s);
+								key = s.c;
+								cur_key_len = s.len;
+								break;
+							default:
+								continue;
+						}
+
+						++iterations;
+
+						php_printf("Set key-var\n");
+						// set key-var
+						MAKE_STD_ZVAL(tmp_item);
+						ZVAL_STRINGL(tmp_item, key, cur_key_len, 0);
+						Z_ADDREF_P(tmp_item);
+						zend_hash_update(tmp_vars, skey.c, skey.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
+
+						php_printf("Set val-var\n");
+						// set val-var
+						Z_ADDREF_PP(cur_val);
+						zend_hash_update(tmp_vars, iter_var_name.c, iter_var_name.len+1, (void **)cur_val, sizeof(zval *), NULL);
+
+						php_printf("Use\n");
+						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
+
+						zend_hash_del(tmp_vars, skey.c, skey.len+1);
+
+						php_printf("Delref val-var\n");
+						Z_DELREF_PP(cur_val);
+						php_printf("Delref key-var\n");
+						FREE_ZVAL(tmp_item);
+
+						smart_str_appends(&out, tmp);
+						efree(tmp);
+						smart_str_free(&s);
+					}
+
+					smart_str_free(&skey);
+				}
+
+				TMPL_DESTROY_ITER_VAR();
+
+				if (!iterations && cur->next_cond) {
+					char *tmp;
+					cur = cur->next_cond;
+					tmp = tmpl_use(cur->content_item, vars TSRMLS_CC);
+					smart_str_appends(&out, tmp);
+					efree(tmp);
+				}
+
+				while (cur->next_cond) {
+					cur = cur->next_cond;
+				}
+				break;
+
 			case TMPL_EL_LOOP_RANGE:
 
-				ALLOC_HASHTABLE(tmp_vars);
-				zend_hash_init(tmp_vars, 0, NULL, ZVAL_PTR_DTOR, 0);
-				zend_hash_copy(tmp_vars, vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp_item, sizeof(zval *));
-				tmp_item = NULL;
+				TMPL_INIT_ITER_VAR();
+
+				iterations = 0;
+
 				MAKE_STD_ZVAL(tmp_item);
 				Z_TYPE_P(tmp_item) = IS_LONG;
 				Z_LVAL_P(tmp_item) = 0;
-
-				smart_str_appendc(&iter_var_name, '$');
-				smart_str_0(&iter_var_name);
-
-				while (zend_hash_exists(vars, iter_var_name.c, iter_var_name.len+1)) {
-					smart_str_appendc(&iter_var_name, '$');
-					smart_str_0(&iter_var_name);
-				}
 
 				zend_hash_update(tmp_vars, iter_var_name.c, iter_var_name.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
 
@@ -618,10 +721,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					}
 				}
 
-				smart_str_free(&iter_var_name);
-
-				zend_hash_destroy(tmp_vars);
-				FREE_HASHTABLE(tmp_vars);
+				TMPL_DESTROY_ITER_VAR();
 
 				if (!iterations && cur->next_cond) {
 					char *tmp;
