@@ -615,7 +615,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					HashPosition pos;
 					char *tmp;
 
-					smart_str skey;
+					smart_str skey={0};
 
 					smart_str_appendl(&skey, iter_var_name.c, iter_var_name.len);
 					smart_str_appendc(&skey, '@');
