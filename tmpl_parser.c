@@ -643,26 +643,21 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 
 						++iterations;
 
-						php_printf("Set key-var\n");
 						// set key-var
 						MAKE_STD_ZVAL(tmp_item);
 						ZVAL_STRINGL(tmp_item, key, cur_key_len-1, 0);
 						Z_ADDREF_P(tmp_item);
 						zend_hash_update(tmp_vars, skey.c, skey.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
 
-						php_printf("Set val-var\n");
 						// set val-var
 						Z_ADDREF_PP(cur_val);
 						zend_hash_update(tmp_vars, iter_var_name.c, iter_var_name.len+1, (void **)cur_val, sizeof(zval *), NULL);
 
-						php_printf("Use\n");
 						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
 
 						zend_hash_del(tmp_vars, skey.c, skey.len+1);
 
-						php_printf("Delref val-var\n");
 						Z_DELREF_PP(cur_val);
-						php_printf("Delref key-var\n");
 						FREE_ZVAL(tmp_item);
 
 						smart_str_appends(&out, tmp);
