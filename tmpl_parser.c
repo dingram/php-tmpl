@@ -646,7 +646,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 						php_printf("Set key-var\n");
 						// set key-var
 						MAKE_STD_ZVAL(tmp_item);
-						ZVAL_STRINGL(tmp_item, key, cur_key_len, 0);
+						ZVAL_STRINGL(tmp_item, key, cur_key_len-1, 0);
 						Z_ADDREF_P(tmp_item);
 						zend_hash_update(tmp_vars, skey.c, skey.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
 
