@@ -509,32 +509,40 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	smart_str_0(&out);
 
 	for (cur = tmpl; cur; cur = cur->next) {
+		PARSER_DEBUGM("Start of iteration: (%d) \"%s\"", out.len, out.c);
 		switch (cur->type) {
 			case TMPL_EL_CONTENT:
-				if (*(cur->data.content.data))
+				if (*(cur->data.content.data)) {
+					PARSER_DEBUGM("LITERAL: \"%s\"", cur->data.content.data);
 					smart_str_appendl(&out, cur->data.content.data, cur->data.content.len);
+				}
 				break;
 
 			case TMPL_EL_SUBST:
 				if (!cur->data.var.len) // error?
 					break;
 				if (vars && zend_hash_find(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS) {
+					PARSER_DEBUGM("VAR: \"%s\"", cur->data.var.name);
 					char *str = NULL;
 					int len = 0, free_str = 1, free_zval = 0;
 					zval str_tmp;
 					switch (Z_TYPE_PP(dest_entry)) {
 						case IS_NULL:
+							PARSER_DEBUGM("  value: NULL", len, str);
 							break;
 						case IS_BOOL:
 							len = spprintf(&str, 0, "%s", Z_LVAL_PP(dest_entry) ? "true" : "false");
+							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_LONG:
 							len = spprintf(&str, 0, "%ld", Z_LVAL_PP(dest_entry));
+							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_STRING:
 							free_str = 0;
 							str = Z_STRVAL_PP(dest_entry);
 							len = Z_STRLEN_PP(dest_entry);
+							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_DOUBLE:
 						case IS_ARRAY:
@@ -543,10 +551,12 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 							free_str = 0;
 							str = Z_STRVAL(str_tmp);
 							len = Z_STRLEN(str_tmp);
+							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_RESOURCE:
 							php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Type of replacement for \"%s\" is resource; you probably don't want this", cur->data.var.name);
 							str = estrdup("[Resource]");
+							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						default:
 							php_error_docref(NULL TSRMLS_CC, E_WARNING, "Type of replacement for \"%s\" is unsupported; ignoring", cur->data.var.name);
@@ -647,6 +657,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 						MAKE_STD_ZVAL(tmp_item);
 						ZVAL_STRINGL(tmp_item, key, cur_key_len-1, 0);
 						Z_ADDREF_P(tmp_item);
+						PARSER_DEBUGM("Key: \"%s\"", Z_STRVAL_P(tmp_item));
 						zend_hash_update(tmp_vars, skey.c, skey.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
 
 						// set val-var
@@ -740,6 +751,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	}
 	smart_str_free(&out);
 	PARSER_DEBUG("Render complete");
+	PARSER_DEBUGM("Result: (%d) \"%s\"", out.len, out.c);
 	return final_out;
 }
 
