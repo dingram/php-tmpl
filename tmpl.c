@@ -68,6 +68,9 @@ static void tt_object_free_storage(void *obj TSRMLS_DC) /* {{{ */
 	zend_object_std_dtor(&tto->zo TSRMLS_CC);
 #endif
 
+#ifdef _TMPL_ALLOC_DEBUG
+	if (tto->tmpl) tmpl_dump(tto->tmpl);
+#endif
 	if (tto->tmpl) tmpl_free(tto->tmpl);
 	if (tto->tmpl_vars) {
 		zend_hash_destroy(tto->tmpl_vars);
@@ -173,6 +176,9 @@ PHP_METHOD(tt, __destruct)
 	}
 
 	if (tto->tmpl) {
+#ifdef _TMPL_ALLOC_DEBUG
+		tmpl_dump(tto->tmpl);
+#endif
 		tmpl_free(tto->tmpl);
 		tto->tmpl = NULL;
 	}
@@ -394,6 +400,9 @@ PHP_METHOD(tt, compile)
 	tto = fetch_tt_object(obj TSRMLS_CC);
 
 	if (tto->tmpl) {
+#ifdef _TMPL_ALLOC_DEBUG
+		tmpl_dump(tto->tmpl);
+#endif
 		tmpl_free(tto->tmpl);
 		tto->tmpl = NULL;
 	}
@@ -831,6 +840,9 @@ PHP_FUNCTION(tmpl_parse)
 	char *tmp = tmpl_use(tmpl, NULL TSRMLS_CC);
 	php_printf("Result: \"%s\"\n", tmp);
 	efree(tmp);
+#ifdef _TMPL_ALLOC_DEBUG
+	if (tmpl) tmpl_dump(tmpl);
+#endif
 	tmpl_free(tmpl);
 
 	RETURN_NULL();

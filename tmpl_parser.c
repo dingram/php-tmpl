@@ -47,6 +47,14 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 #define RENDER_DEBUGM(m, ...)
 #endif
 
+#ifdef _TMPL_ALLOC_DEBUG
+#define ALLOC_DEBUG(m) php_printf(m "\n")
+#define ALLOC_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
+#else
+#define ALLOC_DEBUG(m)
+#define ALLOC_DEBUGM(m, ...)
+#endif
+
 #define TMPL_CREATE_EL(x) 							do {                                      \
 														(x)=emalloc(sizeof(php_tt_tmpl_el));  \
 														memset((x),0,sizeof(php_tt_tmpl_el)); \
@@ -384,23 +392,37 @@ static php_tt_tmpl_el *_tmpl_parse(char const ** tmpl, int len, php_tt_tmpl_el *
  * Go through the tree and post-process to set up ->next for all ->next_cond items
  */
 php_tt_tmpl_el *_tmpl_postprocess(php_tt_tmpl_el *tmpl) {
+	ALLOC_DEBUGM(">>> POSTPROCESS begin: %p", tmpl);
 	php_tt_tmpl_el *root = tmpl;
 	if (!tmpl) return;
 	while (tmpl) {
+		ALLOC_DEBUGM("*** POSTPROCESS loop start: %p", tmpl);
 		php_tt_tmpl_el *tmp = tmpl->next_cond;
+		ALLOC_DEBUGM("*** POSTPROCESS next_cond of %p is %p", tmpl, tmp);
 		while (tmp) {
-			if (tmp->content_item) tmp->content_item = _tmpl_postprocess(tmp->content_item);
+			if (tmp->content_item) {
+				ALLOC_DEBUGM("*** POSTPROCESS content_item of %p is %p", tmp, tmp->content_item);
+				tmp->content_item = _tmpl_postprocess(tmp->content_item);
+			}
 			if (!tmp->next_cond) {
+				ALLOC_DEBUGM("*** POSTPROCESS no next_cond of %p", tmp);
 				if (tmpl->next) {
+					ALLOC_DEBUGM("*** POSTPROCESS tmp[%p]->next := tmpl[%p]->next[%p]", tmp, tmpl, tmpl->next);
 					tmp->next = tmpl->next;
+					ALLOC_DEBUGM("+++ POSTPROCESS ++(tmp[%p]->next[%p]->refcount[%u])", tmp, tmp->next, tmp->next->refcount);
 					++(tmp->next->refcount);
 				}
 			}
+			ALLOC_DEBUGM("*** POSTPROCESS next_cond of %p is %p", tmp, tmp->next_cond);
 			tmp = tmp->next_cond;
 		}
-		if (tmpl->content_item) tmpl->content_item = _tmpl_postprocess(tmpl->content_item);
+		if (tmpl->content_item) {
+			ALLOC_DEBUGM("*** POSTPROCESS content_item of %p is %p", tmpl, tmpl->content_item);
+			tmpl->content_item = _tmpl_postprocess(tmpl->content_item);
+		}
 		tmpl = tmpl->next;
 	}
+	ALLOC_DEBUGM("<<< POSTPROCESS end: %p", tmpl);
 	return root;
 }
 
@@ -931,23 +953,43 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 	switch (tmpl->type) {
 		case TMPL_EL_CONTENT:
 			/* Plain content: data.content */
-			php_printf("%sSTRING: (%ld) \"%s\"\n", ind, tmpl->data.content.len, tmpl->data.content.data);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]STRING: (%ld) \"%s\"\n", ind, tmpl->refcount, tmpl, tmpl->data.content.len, tmpl->data.content.data);
+#else
+			php_printf("%s[rc=%u]STRING: (%ld) \"%s\"\n", ind, tmpl->refcount, tmpl->data.content.len, tmpl->data.content.data);
+#endif
 			break;
 		case TMPL_EL_SUBST:
 			/* Simple substitution: data.var */
 			if (tmpl->data.var.dval) {
-				php_printf("%sVALUE-OF: \"%s\", default \"%s\"\n", ind, tmpl->data.var.name, tmpl->data.var.dval);
+#ifdef _TMPL_ALLOC_DEBUG
+				php_printf("%s[rc=%u][%p]VALUE-OF: \"%s\", default \"%s\"\n", ind, tmpl->refcount, tmpl, tmpl->data.var.name, tmpl->data.var.dval);
+#else
+				php_printf("%s[rc=%u]VALUE-OF: \"%s\", default \"%s\"\n", ind, tmpl->refcount, tmpl->data.var.name, tmpl->data.var.dval);
+#endif
 			} else {
-				php_printf("%sVALUE-OF: \"%s\"\n", ind, tmpl->data.var.name);
+#ifdef _TMPL_ALLOC_DEBUG
+				php_printf("%s[rc=%u][%p]VALUE-OF: \"%s\"\n", ind, tmpl->refcount, tmpl, tmpl->data.var.name);
+#else
+				php_printf("%s[rc=%u]VALUE-OF: \"%s\"\n", ind, tmpl->refcount, tmpl->data.var.name);
+#endif
 			}
 			break;
 		case TMPL_EL_SUBST_EXPR:
 			/* Expression substitution: data.expr */
-			php_printf("Unknown type code %d\n", tmpl->type);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%sUnsupported type code %d [rc=%u][%p]\n", ind, tmpl->type, tmpl->refcount, tmpl);
+#else
+			php_printf("%sUnsupported type code %d [rc=%u]\n", ind, tmpl->type, tmpl->refcount);
+#endif
 			break;
 		case TMPL_EL_COND:
 			/* Simple conditional: data.var, next_cond, content_item */
-			php_printf("%sIF: \"%s\"\n", ind, tmpl->data.var.name);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]IF: \"%s\"\n", ind, tmpl->refcount, tmpl, tmpl->data.var.name);
+#else
+			php_printf("%s[rc=%u]IF: \"%s\"\n", ind, tmpl->refcount, tmpl->data.var.name);
+#endif
 			_tmpl_dump(tmpl->content_item, ind_lvl+1);
 			if (tmpl->next_cond) {
 				// if we have a next condition, then the final next_condition's
@@ -960,16 +1002,28 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			break;
 		case TMPL_EL_COND_EXPR:
 			/* Expression conditional: data.expr, next_cond, content_item */
-			php_printf("Unknown type code %d\n", tmpl->type);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%sUnsupported type code %d [rc=%u][%p]\n", ind, tmpl->type, tmpl->refcount, tmpl);
+#else
+			php_printf("%sUnsupported type code %d [rc=%u]\n", ind, tmpl->type, tmpl->refcount);
+#endif
 			break;
 		case TMPL_EL_ELSE:
 			/* Else block: content_item */
-			php_printf("%sELSE:\n", ind);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]ELSE:\n", ind, tmpl->refcount, tmpl);
+#else
+			php_printf("%s[rc=%u]ELSE:\n", ind, tmpl->refcount);
+#endif
 			_tmpl_dump(tmpl->content_item, ind_lvl+1);
 			break;
 		case TMPL_EL_LOOP_RANGE:
 			/* Loop over range: data.range, content_item, next_cond */
-			php_printf("%sFOR item = %ld TO %ld STEP %ld:\n", ind, tmpl->data.range.begin, tmpl->data.range.end, tmpl->data.range.step);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]FOR item = %ld TO %ld STEP %ld:\n", ind, tmpl->refcount, tmpl, tmpl->data.range.begin, tmpl->data.range.end, tmpl->data.range.step);
+#else
+			php_printf("%s[rc=%u]FOR item = %ld TO %ld STEP %ld:\n", ind, tmpl->refcount, tmpl->data.range.begin, tmpl->data.range.end, tmpl->data.range.step);
+#endif
 			_tmpl_dump(tmpl->content_item, ind_lvl+1);
 			if (tmpl->next_cond) {
 				// if we have a next condition, then the final next_condition's
@@ -981,7 +1035,11 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			break;
 		case TMPL_EL_LOOP_VAR:
 			/* Loop over array var: data.var, content_item, next_cond */
-			php_printf("%sFOREACH: \"%s\"\n", ind, tmpl->data.var.name);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]FOREACH: \"%s\"\n", ind, tmpl->refcount, tmpl, tmpl->data.var.name);
+#else
+			php_printf("%s[rc=%u]FOREACH: \"%s\"\n", ind, tmpl->refcount, tmpl->data.var.name);
+#endif
 			_tmpl_dump(tmpl->content_item, ind_lvl+1);
 			if (tmpl->next_cond) {
 				// if we have a next condition, then the final next_condition's
@@ -993,15 +1051,27 @@ static void _tmpl_dump(php_tt_tmpl_el *tmpl, int ind_lvl) {
 			break;
 		case TMPL_EL_LOOP_ELSE:
 			/* Loop "else": content_item */
-			php_printf("%sELSEIF no iterations:\n", ind);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]ELSEIF no iterations:\n", ind, tmpl->refcount, tmpl);
+#else
+			php_printf("%s[rc=%u]ELSEIF no iterations:\n", ind, tmpl->refcount);
+#endif
 			_tmpl_dump(tmpl->content_item, ind_lvl+1);
 			break;
 		case TMPL_EL_ERROR:
 			/* Error message: data.content */
-			php_printf("%sERROR: %s\n", ind, tmpl->data.content.data);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%s[rc=%u][%p]ERROR: %s\n", ind, tmpl->refcount, tmpl, tmpl->data.content.data);
+#else
+			php_printf("%s[rc=%u]ERROR: %s\n", ind, tmpl->refcount, tmpl->data.content.data);
+#endif
 			break;
 		default:
-			php_printf("Unknown type code %d\n", tmpl->type);
+#ifdef _TMPL_ALLOC_DEBUG
+			php_printf("%sUnknown type code %d [rc=%u][%p]\n", ind, tmpl->type, tmpl->refcount, tmpl);
+#else
+			php_printf("%sUnknown type code %d [rc=%u]\n", ind, tmpl->type, tmpl->refcount);
+#endif
 			break;
 	}
 	if(tmpl->next) _tmpl_dump(tmpl->next, ind_lvl);
@@ -1015,35 +1085,52 @@ void tmpl_dump(php_tt_tmpl_el *tmpl) {
 void tmpl_free(php_tt_tmpl_el *tmpl) {
 	php_tt_tmpl_el *next = NULL;
 	while (tmpl) {
+		ALLOC_DEBUGM("Starting to free tmpl at %p[rc=%u]", tmpl, tmpl->refcount);
 		if (--(tmpl->refcount) > 0) {
+			ALLOC_DEBUGM("Dec refcount (now %u) > 0", tmpl->refcount);
 			tmpl = tmpl->next;
 			continue;
 		}
-		if (tmpl->content_item)
+		if (tmpl->content_item) {
+			ALLOC_DEBUGM("Freeing content_item at %p", tmpl->content_item);
 			tmpl_free(tmpl->content_item);
-		if (tmpl->next_cond)
+		}
+		if (tmpl->next_cond) {
+			ALLOC_DEBUGM("Freeing next_cond at %p", tmpl->next_cond);
 			tmpl_free(tmpl->next_cond);
-		if (TMPL_EL_HAS_CONTENT(tmpl) && tmpl->data.content.data)
+		}
+		if (TMPL_EL_HAS_CONTENT(tmpl) && tmpl->data.content.data) {
+			ALLOC_DEBUGM("Freeing data.content.data at %p", tmpl->data.content.data);
 			efree(tmpl->data.content.data);
-		if (TMPL_EL_HAS_VAR(tmpl) && tmpl->data.var.name)
+		}
+		if (TMPL_EL_HAS_VAR(tmpl) && tmpl->data.var.name) {
+			ALLOC_DEBUGM("Freeing data.var.name at %p", tmpl->data.var.name);
 			efree(tmpl->data.var.name);
-		if (TMPL_EL_HAS_VAR(tmpl) && tmpl->data.var.dval)
+		}
+		if (TMPL_EL_HAS_VAR(tmpl) && tmpl->data.var.dval) {
+			ALLOC_DEBUGM("Freeing data.var.dval at %p", tmpl->data.var.dval);
 			efree(tmpl->data.var.dval);
-		if (TMPL_EL_HAS_EXPR(tmpl) )
+		}
+		if (TMPL_EL_HAS_EXPR(tmpl) ) {
+			ALLOC_DEBUGM("Freeing expr at %p", tmpl->data.expr);
 			tmpl_expr_free(tmpl->data.expr);
+		}
 		tmpl->type = 0;
 
 		if (tmpl->next_cond) {
 			// the last next_cond's "next" is equal to the first, so need to
 			// make sure we don't try to free twice!
+			ALLOC_DEBUGM("Has next_cond; freeing tmpl at %p and exiting loop", tmpl);
 			efree(tmpl);
 			tmpl = NULL;
 		} else {
+			ALLOC_DEBUGM("No next_cond; freeing tmpl at %p and continuing to %p", tmpl, tmpl->next);
 			next = tmpl->next;
 			efree(tmpl);
 			tmpl = next;
 		}
 	}
+	ALLOC_DEBUG("Unrecursing...");
 }
 
 /*
