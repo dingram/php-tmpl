@@ -31,12 +31,20 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
 
-#if 0
+#ifdef _PARSER_DEBUG
 #define PARSER_DEBUG(m) php_printf(m "\n")
 #define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
 #else
 #define PARSER_DEBUG(m)
 #define PARSER_DEBUGM(m, ...)
+#endif
+
+#ifdef _RENDER_DEBUG
+#define RENDER_DEBUG(m) php_printf(m "\n")
+#define RENDER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
+#else
+#define RENDER_DEBUG(m)
+#define RENDER_DEBUGM(m, ...)
 #endif
 
 #define TMPL_CREATE_EL(x) 							do {                                      \
@@ -504,16 +512,19 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	HashTable *tmp_vars;
 	smart_str iter_var_name = {0};
 
-	PARSER_DEBUG("Starting render");
+	RENDER_DEBUG("Starting render");
 
 	smart_str_0(&out);
 
 	for (cur = tmpl; cur; cur = cur->next) {
-		PARSER_DEBUGM("Start of iteration: (%d) \"%s\"", out.len, out.c);
+#ifdef _RENDER_DEBUG
+		smart_str_0(&out);
+#endif
+		RENDER_DEBUGM("Start of iteration: (%lu) \"%s\"", out.len, out.c);
 		switch (cur->type) {
 			case TMPL_EL_CONTENT:
 				if (*(cur->data.content.data)) {
-					PARSER_DEBUGM("LITERAL: \"%s\"", cur->data.content.data);
+					RENDER_DEBUGM("LITERAL: \"%s\"", cur->data.content.data);
 					smart_str_appendl(&out, cur->data.content.data, cur->data.content.len);
 				}
 				break;
@@ -522,27 +533,27 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 				if (!cur->data.var.len) // error?
 					break;
 				if (vars && zend_hash_find(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS) {
-					PARSER_DEBUGM("VAR: \"%s\"", cur->data.var.name);
+					RENDER_DEBUGM("VAR: \"%s\"", cur->data.var.name);
 					char *str = NULL;
 					int len = 0, free_str = 1, free_zval = 0;
 					zval str_tmp;
 					switch (Z_TYPE_PP(dest_entry)) {
 						case IS_NULL:
-							PARSER_DEBUGM("  value: NULL", len, str);
+							RENDER_DEBUGM("  value: NULL", len, str);
 							break;
 						case IS_BOOL:
 							len = spprintf(&str, 0, "%s", Z_LVAL_PP(dest_entry) ? "true" : "false");
-							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
+							RENDER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_LONG:
 							len = spprintf(&str, 0, "%ld", Z_LVAL_PP(dest_entry));
-							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
+							RENDER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_STRING:
 							free_str = 0;
 							str = Z_STRVAL_PP(dest_entry);
 							len = Z_STRLEN_PP(dest_entry);
-							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
+							RENDER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_DOUBLE:
 						case IS_ARRAY:
@@ -551,12 +562,12 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 							free_str = 0;
 							str = Z_STRVAL(str_tmp);
 							len = Z_STRLEN(str_tmp);
-							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
+							RENDER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						case IS_RESOURCE:
 							php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Type of replacement for \"%s\" is resource; you probably don't want this", cur->data.var.name);
 							str = estrdup("[Resource]");
-							PARSER_DEBUGM("  value: (%d) \"%s\"", len, str);
+							RENDER_DEBUGM("  value: (%d) \"%s\"", len, str);
 							break;
 						default:
 							php_error_docref(NULL TSRMLS_CC, E_WARNING, "Type of replacement for \"%s\" is unsupported; ignoring", cur->data.var.name);
@@ -594,7 +605,10 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 				while (cond) {
 					if (_tmpl_eval_cond(cond, vars TSRMLS_CC)) {
 						if (cond->content_item) {
-							char *tmp = tmpl_use(cond->content_item, vars TSRMLS_CC);
+							char *tmp;
+							RENDER_DEBUG(">>> Recursing...");
+							tmp = tmpl_use(cond->content_item, vars TSRMLS_CC);
+							RENDER_DEBUG("<<< Unrecursing...");
 							smart_str_appends(&out, tmp);
 							efree(tmp);
 						}
@@ -657,14 +671,16 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 						MAKE_STD_ZVAL(tmp_item);
 						ZVAL_STRINGL(tmp_item, key, cur_key_len-1, 0);
 						Z_ADDREF_P(tmp_item);
-						PARSER_DEBUGM("Key: \"%s\"", Z_STRVAL_P(tmp_item));
+						RENDER_DEBUGM("Key: (%d) \"%s\"", Z_STRLEN_P(tmp_item), Z_STRVAL_P(tmp_item));
 						zend_hash_update(tmp_vars, skey.c, skey.len+1, (void **)&tmp_item, sizeof(zval *), NULL);
 
 						// set val-var
 						Z_ADDREF_PP(cur_val);
 						zend_hash_update(tmp_vars, iter_var_name.c, iter_var_name.len+1, (void **)cur_val, sizeof(zval *), NULL);
 
+						RENDER_DEBUG(">>> Recursing...");
 						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
+						RENDER_DEBUG("<<< Unrecursing...");
 
 						zend_hash_del(tmp_vars, skey.c, skey.len+1);
 
@@ -684,7 +700,9 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 				if (!iterations && cur->next_cond) {
 					char *tmp;
 					cur = cur->next_cond;
+					RENDER_DEBUG(">>> Recursing...");
 					tmp = tmpl_use(cur->content_item, vars TSRMLS_CC);
+					RENDER_DEBUG("<<< Unrecursing...");
 					smart_str_appends(&out, tmp);
 					efree(tmp);
 				}
@@ -711,7 +729,9 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					for (i = cur->data.range.begin; i <= cur->data.range.end; i += cur->data.range.step) {
 						++iterations;
 						Z_LVAL_P(tmp_item) = i;
+						RENDER_DEBUG(">>> Recursing...");
 						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
+						RENDER_DEBUG("<<< Unrecursing...");
 						smart_str_appends(&out, tmp);
 						efree(tmp);
 					}
@@ -721,7 +741,9 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 					for (i = cur->data.range.begin; i >= cur->data.range.end; i += cur->data.range.step) {
 						++iterations;
 						Z_LVAL_P(tmp_item) = i;
+						RENDER_DEBUG(">>> Recursing...");
 						tmp = tmpl_use(cur->content_item, tmp_vars TSRMLS_CC);
+						RENDER_DEBUG("<<< Unrecursing...");
 						smart_str_appends(&out, tmp);
 						efree(tmp);
 					}
@@ -732,7 +754,9 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 				if (!iterations && cur->next_cond) {
 					char *tmp;
 					cur = cur->next_cond;
+					RENDER_DEBUG(">>> Recursing...");
 					tmp = tmpl_use(cur->content_item, vars TSRMLS_CC);
+					RENDER_DEBUG("<<< Unrecursing...");
 					smart_str_appends(&out, tmp);
 					efree(tmp);
 				}
@@ -745,13 +769,16 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	}
 
 	if (out.c) {
-		final_out = estrndup(out.c, out.len);
+		// character 17 is being modified?!
+		smart_str_0(&out);
+		RENDER_DEBUGM("Result: (%lu) \"%.30s\"", out.len, out.c);
+		final_out = estrdup(out.c);
 	} else {
+		RENDER_DEBUGM("Result: (0) \"\"", out.len, out.c);
 		final_out = estrdup("");
 	}
 	smart_str_free(&out);
-	PARSER_DEBUG("Render complete");
-	PARSER_DEBUGM("Result: (%d) \"%s\"", out.len, out.c);
+	RENDER_DEBUG("Render complete");
 	return final_out;
 }
 
