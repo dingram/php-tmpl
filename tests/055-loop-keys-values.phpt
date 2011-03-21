@@ -1,5 +1,5 @@
 --TEST--
-Static tokens
+Loops: keys/values bug
 --SKIPIF--
 <?php if (!class_exists('TextTemplate')) print "skip"; ?>
 --FILE--
