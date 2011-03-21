@@ -31,7 +31,7 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 
 //#define DEBUG_VAR_DUMP(v, f) do {php_printf(#v " = " f "\n", v);} while (0)
 
-#ifdef _PARSER_DEBUG
+#ifdef _TMPL_PARSER_DEBUG
 #define PARSER_DEBUG(m) php_printf(m "\n")
 #define PARSER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
 #else
@@ -39,7 +39,7 @@ static inline char *tmpl_parse_find_tag_close(char const * const tmpl) {
 #define PARSER_DEBUGM(m, ...)
 #endif
 
-#ifdef _RENDER_DEBUG
+#ifdef _TMPL_RENDER_DEBUG
 #define RENDER_DEBUG(m) php_printf(m "\n")
 #define RENDER_DEBUGM(m, ...) php_printf(m "\n", __VA_ARGS__)
 #else
@@ -517,7 +517,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 	smart_str_0(&out);
 
 	for (cur = tmpl; cur; cur = cur->next) {
-#ifdef _RENDER_DEBUG
+#ifdef _TMPL_RENDER_DEBUG
 		smart_str_0(&out);
 #endif
 		RENDER_DEBUGM("Start of iteration: (%lu) \"%s\"", out.len, out.c);
