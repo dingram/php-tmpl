@@ -1117,7 +1117,7 @@ void tmpl_free(php_tt_tmpl_el *tmpl) {
 		}
 		tmpl->type = 0;
 
-		if (tmpl->next_cond) {
+		if (0 && tmpl->next_cond) {
 			// the last next_cond's "next" is equal to the first, so need to
 			// make sure we don't try to free twice!
 			ALLOC_DEBUGM("Has next_cond; freeing tmpl at %p and exiting loop", tmpl);
