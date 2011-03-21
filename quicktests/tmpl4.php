@@ -148,7 +148,12 @@ $tpl = "\n".
 
 var_dump($tpl);
 $t->compile($tpl);
-var_dump($t->render(array('ARRY'=>array('foo', 'bar', 'baz', 'quux'))));
+$result = $t->render(array('ARRY'=>array('foo', 'bar', 'baz', 'quux')));
+var_dump($result);
+if (strpos($result, '9') !== false) {
+  var_dump('FAILURE');
+  exit;
+}
 
 print "\n\n";
 
@@ -160,19 +165,12 @@ $tpl = "\n".
 
 var_dump($tpl);
 $t->compile($tpl);
-var_dump($t->render(array('ARRY'=>array('foo', 'bar', 'baz', 'quux'))));
-
-print "\n\n";
-
-$t = new TextTemplate();
-$tpl = "\n".
-  TextTemplate::tokenizeLoop('ARRY').
-    TextTemplate::tokenize('$@').': '.TextTemplate::tokenize('$')."\n".
-  TextTemplate::tokenizeLoopEnd();
-
-var_dump($tpl);
-$t->compile($tpl);
-var_dump($t->render(array('ARRY'=>array('foo'=>0, 'bar'=>1, 'baz'=>2, 'quux'=>3))));
+$result = $t->render(array('ARRY'=>array('foo'=>0, 'bar'=>1, 'baz'=>2, 'quux'=>3)));
+var_dump($result);
+if (strpos($result, '`') !== false) {
+  var_dump('FAILURE');
+  exit;
+}
 
 print "\n\n";
 
