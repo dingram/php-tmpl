@@ -1,0 +1,317 @@
+--TEST--
+Stringification: conditionals (nested)
+--SKIPIF--
+<?php if (!class_exists('TextTemplate')) print "skip"; ?>
+--FILE--
+<?php
+function testIt($a) {
+  $t = new TextTemplate();
+  print $t == $t->compile($a) ? "pass\n" : "FAIL\n";
+}
+
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd()
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+testIt(
+  'foo'.
+  TextTemplate::tokenizeConditional('A').
+  'foo'.
+  TextTemplate::tokenizeConditional('B').
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'.
+  TextTemplate::tokenizeConditionalEnd().
+  'foo'
+);
+?>
+--EXPECT--
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
+pass
