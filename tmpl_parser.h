@@ -73,11 +73,6 @@
 			(x)->type == TMPL_EL_LOOP_RANGE || (x)->type == TMPL_EL_LOOP_VAR || \
 		)
 
-typedef struct php_tt_alloclist_t {
-	void *ptr;
-	struct php_tt_alloclist_t *next;
-} php_tt_alloclist;
-
 typedef struct php_tt_tmpl_el_t {
 	int type;
 	union {
@@ -104,7 +99,7 @@ typedef struct php_tt_tmpl_el_t {
 	struct php_tt_tmpl_el_t *next_cond;
 	// XXX: NULL if no content or this is a text-type node rather than an action
 	struct php_tt_tmpl_el_t *content_item;
-	php_tt_alloclist *alloc;
+	int refcount;
 } php_tt_tmpl_el;
 
 
