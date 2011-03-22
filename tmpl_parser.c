@@ -438,6 +438,13 @@ php_tt_tmpl_el *tmpl_parse(char const * const tmpl, int len TSRMLS_DC) {
 	return ret;
 }
 
+int _tmpl_get_var(HashTable *symbol_table, char *name, size_t name_len, void **dest) {
+	if (!symbol_table) {
+		return FAILURE;
+	}
+	return zend_hash_find(symbol_table, name, name_len+1, (void**)&dest);
+}
+
 int _tmpl_truthy_str(char *str) {
 	return !(
 			!strncasecmp(str, "",      0) ||
@@ -466,7 +473,7 @@ int _tmpl_eval_cond(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 		++var;
 		--varlen;
 	}
-	if (vars && zend_hash_find(vars, var, varlen+1, (void**)&dest_entry)==SUCCESS) {
+	if (vars && _tmpl_get_var(vars, var, varlen+1, (void**)&dest_entry)==SUCCESS) {
 		switch (Z_TYPE_PP(dest_entry))
 		{
 			case IS_NULL:
@@ -554,7 +561,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 			case TMPL_EL_SUBST:
 				if (!cur->data.var.len) // error?
 					break;
-				if (vars && zend_hash_find(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS) {
+				if (vars && _tmpl_get_var(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS) {
 					RENDER_DEBUGM("VAR: \"%s\"", cur->data.var.name);
 					char *str = NULL;
 					int len = 0, free_str = 1, free_zval = 0;
@@ -651,7 +658,7 @@ char *tmpl_use(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 
 				iterations = 0;
 
-				if (vars && zend_hash_find(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS && Z_TYPE_PP(dest_entry) == IS_ARRAY) {
+				if (vars && _tmpl_get_var(vars, cur->data.var.name, cur->data.var.len+1, (void**)&dest_entry)==SUCCESS && Z_TYPE_PP(dest_entry) == IS_ARRAY) {
 					zval **cur_val;
 					char *key = NULL;
 					char *cur_key;
