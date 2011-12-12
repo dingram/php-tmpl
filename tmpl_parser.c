@@ -510,14 +510,14 @@ int _tmpl_eval_cond(php_tt_tmpl_el *tmpl, HashTable *vars TSRMLS_DC) {
 #define TMPL_INIT_ITER_VAR()	do { \
 									ALLOC_HASHTABLE(tmp_vars); \
 									zend_hash_init(tmp_vars, 0, NULL, ZVAL_PTR_DTOR, 0); \
-									zend_hash_copy(tmp_vars, vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp_item, sizeof(zval *)); \
+									if (vars) zend_hash_copy(tmp_vars, vars, (copy_ctor_func_t) zval_add_ref, (void *) &tmp_item, sizeof(zval *)); \
 									tmp_item = NULL; \
 									smart_str_free(&iter_var_name); \
 									 \
 									smart_str_appendc(&iter_var_name, '$'); \
 									smart_str_0(&iter_var_name); \
 									 \
-									while (zend_hash_exists(vars, iter_var_name.c, iter_var_name.len+1)) { \
+									while (vars && zend_hash_exists(vars, iter_var_name.c, iter_var_name.len+1)) { \
 										smart_str_appendc(&iter_var_name, '$'); \
 										smart_str_0(&iter_var_name); \
 									} \
