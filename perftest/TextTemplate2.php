@@ -190,9 +190,18 @@ class TextTemplate2 {
 	}
 
 	/**
-	 * Process a text template with the current replacements.
+	 * Compile a template. (Hack to mimic the interface of TextTemplate)
 	 */
-	public function process($text) {
+	public function compile($text) {
+		$this->text = $text;
+	}
+
+	/**
+	 * Process a text template with the current replacements. (Hack to mimic
+	 * the interface of TextTemplate)
+	 */
+	public function render() {
+		$text = $this->text;
 		$new_text = '';
 
 		// -----------------------------------------

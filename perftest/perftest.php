@@ -52,6 +52,11 @@ function test_perf($desc, $tpl, array $vars) {
 	printf("+--------------------------------------+----------+----------+---------+\n");
 }
 
+/**
+ * Biased test; take advantage of TextTemplate being built to compile
+ * once and render many times, whereas the PHP version compiles every
+ * time it renders.
+ */
 function test_biased($tpl, array $vars) {
 	global $t, $t2;
 	$times = array();
@@ -68,8 +73,9 @@ function test_biased($tpl, array $vars) {
 	$times[] = ($end-$start);
 
 	$start = microtime(true);
+	$t2->compile($tpl);
 	for ($i=0; $i<TEST_ITERATIONS; ++$i) {
-		$t2->process($tpl);
+		$t2->render();
 	}
 	$end = microtime(true);
 	$times[] = ($end-$start);
@@ -77,6 +83,10 @@ function test_biased($tpl, array $vars) {
 	return $times;
 }
 
+/**
+ * Fair(er) test; force TextTemplate to recompile the template every
+ * time it renders, just like the PHP version.
+ */
 function test_fair($tpl, array $vars) {
 	global $t, $t2;
 	$times = array();
@@ -94,7 +104,8 @@ function test_fair($tpl, array $vars) {
 
 	$start = microtime(true);
 	for ($i=0; $i<TEST_ITERATIONS; ++$i) {
-		$t2->process($tpl);
+		$t2->compile($tpl);
+		$t2->render();
 	}
 	$end = microtime(true);
 	$times[] = ($end-$start);
